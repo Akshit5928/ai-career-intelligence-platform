@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.app.db import get_supabase
+from backend.app.market_intelligence import analyze_market, build_market_report
 from backend.app.matching import calculate_match
 
 router = APIRouter(prefix="/api/v1", tags=["career"])
@@ -41,11 +42,7 @@ def match_opportunity(request: MatchRequest) -> dict:
     }
 
 
-@router.post("/match/refresh")
-def refresh_all_matches() -> dict:
-    """Recalculate and persist matches for every active internship."""
-    db = get_supabase()
-
+def _load_profile(db):
     config_response = db.table("agent_config").select(
         "target_roles,target_locations,relocation_ok"
     ).order("created_at", desc=True).limit(1).execute()
@@ -53,14 +50,26 @@ def refresh_all_matches() -> dict:
     if not config_rows:
         raise HTTPException(status_code=404, detail="Agent configuration not found")
     config = config_rows[0]
-
-    skills_response = db.table("user_skills").select("skill_name").eq("status", "active").execute()
-    user_skills = [row["skill_name"] for row in (skills_response.data or [])]
-
-    internships_response = db.table("internships").select(
-        "id,role_category,required_skills,preferred_skills,location,eligibility,deadline,status"
+    skills_response = db.table("user_skills").select(
+        "skill_name,proficiency,target_proficiency"
     ).eq("status", "active").execute()
-    internships = internships_response.data or []
+    return config, skills_response.data or []
+
+
+def _load_active_internships(db):
+    response = db.table("internships").select(
+        "id,role_title,role_category,required_skills,preferred_skills,location,eligibility,deadline,status"
+    ).eq("status", "active").execute()
+    return response.data or []
+
+
+@router.post("/match/refresh")
+def refresh_all_matches() -> dict:
+    """Recalculate and persist matches for every active internship."""
+    db = get_supabase()
+    config, skill_rows = _load_profile(db)
+    internships = _load_active_internships(db)
+    user_skills = [row["skill_name"] for row in skill_rows]
 
     now = datetime.now(timezone.utc)
     match_rows = []
@@ -118,3 +127,56 @@ def get_matches(limit: int = 20) -> list[dict]:
         "internships(company_name,role_title,role_category,location,work_mode,stipend,deadline,application_url)"
     ).order("score", desc=True).limit(min(max(limit, 1), 100)).execute()
     return response.data or []
+
+
+@router.post("/market/refresh")
+def refresh_market_intelligence(window_days: int = 90) -> dict:
+    """Calculate skill demand, learning gaps, and persist a market report."""
+    db = get_supabase()
+    config, skill_rows = _load_profile(db)
+    internships = _load_active_internships(db)
+    demands = analyze_market(
+        internships=internships,
+        user_skills=skill_rows,
+        role_filter=config.get("target_roles") or [],
+        window_days=window_days,
+    )
+    report = build_market_report(demands, len(internships))
+    report["window_days"] = window_days
+    report["generated_at"] = datetime.now(timezone.utc).isoformat()
+
+    today = datetime.now(timezone.utc).date().isoformat()
+    db.table("market_reports").insert({
+        "report_date": today,
+        "role_category": "multi-role",
+        "summary": report["summary"],
+        "top_skills": report["top_skills"],
+        "sources": {"type": "internship_database", "opportunities": len(internships)},
+    }).execute()
+
+    return report
+
+
+@router.get("/market/skills")
+def get_market_skills(limit: int = 20) -> list[dict]:
+    """Return the latest market skill-gap ranking from the live opportunity pool."""
+    db = get_supabase()
+    config, skill_rows = _load_profile(db)
+    internships = _load_active_internships(db)
+    demands = analyze_market(
+        internships=internships,
+        user_skills=skill_rows,
+        role_filter=config.get("target_roles") or [],
+    )
+    return [
+        {
+            "skill_name": item.skill_name,
+            "demand_count": item.demand_count,
+            "demand_share": item.demand_share,
+            "user_proficiency": item.user_proficiency,
+            "target_proficiency": item.target_proficiency,
+            "gap_score": item.gap_score,
+            "priority": item.priority,
+        }
+        for item in demands[: min(max(limit, 1), 100)]
+    ]
