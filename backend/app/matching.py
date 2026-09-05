@@ -4,26 +4,20 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import re
 
-
 ROLE_FAMILIES = {
-    "ai/ml intern": {"ai/ml", "ai engineer", "machine learning", "genai", "llm/rag", "ai/ ml"},
-    "data analyst intern": {"data analyst", "data analysis", "data analyst intern"},
-    "data science intern": {"data science", "machine learning", "ai/ml", "data scientist"},
-    "ai engineer intern": {"ai engineer", "ai/ml", "genai", "llm/rag", "ai engineer intern"},
-    "genai/llm/rag intern": {"genai", "llm/rag", "ai engineer", "genai/llm/rag"},
-    "software engineering intern": {"software engineering", "backend", "python/backend", "software engineer"},
+    "ai/ml intern": {"ai/ml", "ai intern", "ai engineer", "machine learning", "machine learning intern", "artificial intelligence", "research intern - ai/ml", "mlops/applied ai"},
+    "data analyst intern": {"data analyst", "data analysis", "data analyst intern", "business analyst", "business analyst intern"},
+    "data science intern": {"data science", "machine learning", "ai/ml", "data scientist", "data scientist intern"},
+    "ai engineer intern": {"ai engineer", "ai/ml", "genai", "llm/rag", "ai engineer intern", "applied ai"},
+    "genai/llm/rag intern": {"genai", "llm/rag", "ai engineer", "genai/llm/rag", "llm", "rag", "generative ai"},
+    "software engineering intern": {"software engineering", "backend", "python/backend", "software engineer", "software development"},
 }
 
 SKILL_ALIASES = {
-    "github": "git/github",
-    "git": "git/github",
-    "git/github": "git/github",
-    "llms": "llm",
-    "large language models": "llm",
-    "generative ai": "generative ai",
-    "gen ai": "generative ai",
-    "machine-learning": "machine learning",
-    "powerbi": "power bi",
+    "github": "git/github", "git": "git/github", "git/github": "git/github",
+    "llms": "llm", "large language models": "llm", "generative ai": "generative ai", "gen ai": "generative ai",
+    "machine-learning": "machine learning", "ml": "machine learning", "powerbi": "power bi",
+    "llamaindex": "llamaindex", "huggingface": "hugging face", "scikit learn": "scikit-learn",
 }
 
 
@@ -51,10 +45,8 @@ def _norm_skills(skills: list[str]) -> set[str]:
 
 def _role_family(role: str) -> str:
     value = _norm(role)
-    if value in ROLE_FAMILIES:
-        return value
     for family, aliases in ROLE_FAMILIES.items():
-        if value in aliases:
+        if value == family or value in aliases:
             return family
     return value
 
@@ -107,35 +99,20 @@ def _deadline_score(deadline: datetime | str | None, now: datetime | None = None
     days = (deadline - now).total_seconds() / 86400
     if days < 0:
         return 0.0
-    if days <= 3:
-        return 100.0
-    if days <= 7:
-        return 90.0
-    if days <= 14:
-        return 75.0
-    if days <= 30:
-        return 60.0
+    if days <= 3: return 100.0
+    if days <= 7: return 90.0
+    if days <= 14: return 75.0
+    if days <= 30: return 60.0
     return 40.0
 
 
-def calculate_match(
-    *,
-    user_skills: list[str],
-    target_roles: list[str],
-    target_locations: list[str],
-    relocation_ok: bool,
-    role_category: str,
-    required_skills: list[str],
-    preferred_skills: list[str] | None = None,
-    location: str | None = None,
-    eligibility: str | None = None,
-    deadline: datetime | str | None = None,
-    now: datetime | None = None,
-) -> MatchResult:
+def calculate_match(*, user_skills: list[str], target_roles: list[str], target_locations: list[str], relocation_ok: bool,
+                    role_category: str, required_skills: list[str], preferred_skills: list[str] | None = None,
+                    location: str | None = None, eligibility: str | None = None,
+                    deadline: datetime | str | None = None, now: datetime | None = None) -> MatchResult:
     user = _norm_skills(user_skills)
     required = _norm_skills(required_skills)
     preferred = _norm_skills(preferred_skills or [])
-
     if required:
         required_hits = len(user & required) / len(required)
         preferred_hits = len(user & preferred) / len(preferred) if preferred else 1.0
@@ -146,44 +123,16 @@ def calculate_match(
     target_families = {_role_family(role) for role in target_roles}
     opportunity_family = _role_family(role_category)
     role_score = 100.0 if opportunity_family in target_families else 25.0
-
     location_score = _location_score(location, target_locations)
     if location_score == 0.0 and relocation_ok:
         location_score = 60.0
-
     eligibility_score = _eligibility_score(eligibility)
     deadline_score = _deadline_score(deadline, now)
-
-    score = (
-        skill_score * 0.50
-        + role_score * 0.20
-        + location_score * 0.15
-        + eligibility_score * 0.10
-        + deadline_score * 0.05
-    )
-
+    score = skill_score * 0.50 + role_score * 0.20 + location_score * 0.15 + eligibility_score * 0.10 + deadline_score * 0.05
     missing = [skill for skill in required_skills if _norm(skill) not in user]
     reasons = []
-    if skill_score >= 70:
-        reasons.append("Strong skill overlap with required skills")
-    elif skill_score >= 40:
-        reasons.append("Partial skill overlap; learning gaps remain")
-    else:
-        reasons.append("Large skill gap against required skills")
-    if role_score == 100:
-        reasons.append("Role aligns with a target career direction")
-    if location_score >= 100:
-        reasons.append("Location/work mode matches target preferences")
-    if deadline_score >= 90:
-        reasons.append("Deadline is approaching; prioritize review")
-
-    return MatchResult(
-        score=round(score, 2),
-        skill_score=round(skill_score, 2),
-        role_score=round(role_score, 2),
-        location_score=round(location_score, 2),
-        eligibility_score=round(eligibility_score, 2),
-        deadline_score=round(deadline_score, 2),
-        missing_skills=missing,
-        reasons=reasons,
-    )
+    reasons.append("Strong skill overlap with required skills" if skill_score >= 70 else "Partial skill overlap; learning gaps remain" if skill_score >= 40 else "Large skill gap against required skills")
+    if role_score == 100: reasons.append("Role aligns with a target career direction")
+    if location_score >= 100: reasons.append("Location/work mode matches target preferences")
+    if deadline_score >= 90: reasons.append("Deadline is approaching; prioritize review")
+    return MatchResult(round(score, 2), round(skill_score, 2), round(role_score, 2), round(location_score, 2), round(eligibility_score, 2), round(deadline_score, 2), missing, reasons)
