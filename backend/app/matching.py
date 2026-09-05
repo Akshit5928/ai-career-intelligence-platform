@@ -86,7 +86,19 @@ def _eligibility_score(eligibility: str | None) -> float:
     return 50.0
 
 
-def _deadline_score(deadline: datetime | None, now: datetime | None = None) -> float:
+def _coerce_deadline(deadline: datetime | str | None) -> datetime | None:
+    if deadline is None or isinstance(deadline, datetime):
+        return deadline
+    if isinstance(deadline, str):
+        try:
+            return datetime.fromisoformat(deadline.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    return None
+
+
+def _deadline_score(deadline: datetime | str | None, now: datetime | None = None) -> float:
+    deadline = _coerce_deadline(deadline)
     if deadline is None:
         return 50.0
     now = now or datetime.now(timezone.utc)
@@ -117,7 +129,7 @@ def calculate_match(
     preferred_skills: list[str] | None = None,
     location: str | None = None,
     eligibility: str | None = None,
-    deadline: datetime | None = None,
+    deadline: datetime | str | None = None,
     now: datetime | None = None,
 ) -> MatchResult:
     user = _norm_skills(user_skills)
