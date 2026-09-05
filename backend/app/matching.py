@@ -5,13 +5,13 @@ from datetime import datetime, timezone
 import re
 
 
-ROLE_ALIASES = {
-    "ai/ml intern": {"ai/ml", "ai engineer", "machine learning", "genai", "llm/rag"},
-    "data analyst intern": {"data analyst", "data analysis"},
-    "data science intern": {"data science", "machine learning", "ai/ml"},
-    "ai engineer intern": {"ai engineer", "ai/ml", "genai", "llm/rag"},
-    "genai/llm/rag intern": {"genai", "llm/rag", "ai engineer"},
-    "software engineering intern": {"software engineering", "backend", "python/backend"},
+ROLE_FAMILIES = {
+    "ai/ml intern": {"ai/ml", "ai engineer", "machine learning", "genai", "llm/rag", "ai/ ml"},
+    "data analyst intern": {"data analyst", "data analysis", "data analyst intern"},
+    "data science intern": {"data science", "machine learning", "ai/ml", "data scientist"},
+    "ai engineer intern": {"ai engineer", "ai/ml", "genai", "llm/rag", "ai engineer intern"},
+    "genai/llm/rag intern": {"genai", "llm/rag", "ai engineer", "genai/llm/rag"},
+    "software engineering intern": {"software engineering", "backend", "python/backend", "software engineer"},
 }
 
 SKILL_ALIASES = {
@@ -51,8 +51,10 @@ def _norm_skills(skills: list[str]) -> set[str]:
 
 def _role_family(role: str) -> str:
     value = _norm(role)
-    for family, aliases in ROLE_ALIASES.items():
-        if value in aliases or family == value:
+    if value in ROLE_FAMILIES:
+        return value
+    for family, aliases in ROLE_FAMILIES.items():
+        if value in aliases:
             return family
     return value
 
