@@ -1,0 +1,30 @@
+name: Career Agent Scheduler
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  research-and-match:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run career agent cycle
+        env:
+          CAREER_AGENT_API_URL: ${{ secrets.CAREER_AGENT_API_URL }}
+          CAREER_AGENT_API_KEY: ${{ secrets.CAREER_AGENT_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${CAREER_AGENT_API_URL:-}" || { echo "CAREER_AGENT_API_URL secret is missing"; exit 1; }
+          if [ -n "${CAREER_AGENT_API_KEY:-}" ]; then
+            curl --fail-with-body --retry 3 --max-time 120 \
+              -X POST "${CAREER_AGENT_API_URL%/}/api/v1/agent/cycle" \
+              -H "Authorization: Bearer ${CAREER_AGENT_API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{}'
+          else
+            curl --fail-with-body --retry 3 --max-time 120 \
+              -X POST "${CAREER_AGENT_API_URL%/}/api/v1/agent/cycle" \
+              -H "Content-Type: application/json" \
+              -d '{}'
+          fi
