@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from backend.app.db import get_supabase
 from backend.app.market_intelligence import analyze_market, build_market_report
 from backend.app.matching import calculate_match
-from backend.app.research_engine import run_research
+from backend.app.research_v21 import run_research_v21
 
 router = APIRouter(prefix="/api/v1", tags=["career"])
 
@@ -108,10 +108,9 @@ def get_matches(limit: int = 20) -> list[dict]:
 
 @router.post("/research/run")
 def research_now() -> dict:
-    """Discover live internship opportunities, persist candidates, and ingest new records."""
+    """Discover live internship opportunities using source-specific adapters."""
     try:
-        result = run_research()
-        # Immediately recalculate scores so newly discovered records are usable by the UI.
+        result = run_research_v21()
         refresh = refresh_all_matches()
         return {**result, "matching": refresh}
     except Exception as exc:
@@ -127,11 +126,11 @@ def get_research_runs(limit: int = 20) -> list[dict]:
 
 @router.post("/agent/cycle")
 def run_agent_cycle() -> dict:
-    """Run discovery + matching as one auditable career-agent cycle."""
+    """Run source-specific discovery + matching as one auditable career-agent cycle."""
     db = get_supabase()
     cycle = db.table("agent_cycle_runs").insert({"status": "running"}).execute().data[0]
     try:
-        research = run_research()
+        research = run_research_v21()
         matching = refresh_all_matches()
         finished = datetime.now(timezone.utc).isoformat()
         db.table("agent_cycle_runs").update({
