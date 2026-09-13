@@ -45,3 +45,17 @@ def test_html_card_candidate_extracts_ai_internship(monkeypatch):
     assert rows[0]["company_name"] == "Example Co"
     assert "python" in rows[0]["skills"]
     assert "sql" in rows[0]["skills"]
+
+
+
+def test_adapter_paths_resolve_from_site_root() -> None:
+    from backend.app.source_adapters import adapter_for
+    from urllib.parse import urljoin
+
+    source = {
+        "name": "EY Careers India",
+        "base_url": "https://www.ey.com/en_in/careers",
+    }
+    adapter = adapter_for(source)
+    assert urljoin(source["base_url"].rstrip("/") + "/", adapter.paths[0]) == "https://www.ey.com/en_in/careers"
+    assert urljoin(source["base_url"].rstrip("/") + "/", "/en_in/careers/search-jobs") == "https://www.ey.com/en_in/careers/search-jobs"
