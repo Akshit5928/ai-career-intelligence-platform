@@ -7,14 +7,17 @@ export default function App() {
   const [skills, setSkills] = React.useState<MarketSkill[]>([])
   const [cycles, setCycles] = React.useState<AgentCycle[]>([])
   const [runs, setRuns] = React.useState<ResearchRun[]>([])
+  const [drafts, setDrafts] = React.useState<any[]>([])
+  const [projects, setProjects] = React.useState<any[]>([])
+  const [status, setStatus] = React.useState<any>(null)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
 
   const load = React.useCallback(async () => {
     setError('')
     try {
-      const [m, s, c, r] = await Promise.all([api.getMatches(), api.getMarketSkills(), api.getAgentCycles(), api.getResearchRuns()])
-      setMatches(m); setSkills(s); setCycles(c); setRuns(r)
+      const [m, s, c, r, d, p, st] = await Promise.all([api.getMatches(), api.getMarketSkills(), api.getAgentCycles(), api.getResearchRuns(), api.getLinkedInDrafts(), api.getProjects(), api.getSystemStatus()])
+      setMatches(m); setSkills(s); setCycles(c); setRuns(r); setDrafts(d); setProjects(p); setStatus(st)
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to connect to FastAPI') }
   }, [])
 
@@ -34,7 +37,7 @@ export default function App() {
   return <div className="app">
     <aside className="sidebar">
       <div className="brand"><div className="logo">AI</div><div><b>Career Intelligence</b><span>Personal Agent</span></div></div>
-      <nav>{['Overview','Opportunities','Skill Intelligence','Applications','GitHub','LinkedIn','Research Agent'].map(x => <button key={x} className={tab === x ? 'nav active' : 'nav'} onClick={() => setTab(x)}><span>{icon(x)}</span>{x}</button>)}</nav>
+      <nav>{['Overview','Opportunities','Skill Intelligence','Portfolio','Applications','GitHub','LinkedIn','Research Agent'].map(x => <button key={x} className={tab === x ? 'nav active' : 'nav'} onClick={() => setTab(x)}><span>{icon(x)}</span>{x}</button>)}</nav>
       <div className="agent-card"><div className="live"><i/> Agent connected</div><strong>AI ranking is automatic</strong><p>No manual role filtering. The system ranks every relevant opportunity against your profile.</p><button onClick={runCycle} disabled={busy}>{busy ? 'Running research…' : 'Run agent cycle'}</button></div>
     </aside>
     <main>
@@ -44,11 +47,15 @@ export default function App() {
       {tab === 'Opportunities' && <Opportunities matches={matches} />}
       {tab === 'Skill Intelligence' && <Skills skills={skills} />}
       {tab === 'Research Agent' && <Research cycles={cycles} runs={runs} busy={busy} runCycle={runCycle} />}
-      {['Applications','GitHub','LinkedIn'].includes(tab) && <section className="panel page-placeholder"><div className="big-icon">{icon(tab)}</div><h2>{tab}</h2><p>This module is wired into the dashboard navigation and will use the same persistent career profile. The live opportunity and market intelligence modules are already connected.</p></section>}
+      {tab === 'Portfolio' && <Portfolio projects={projects} />} {tab === 'LinkedIn' && <LinkedIn drafts={drafts}/>} {tab === 'GitHub' && <GitHubStatus status={status}/>} {tab === 'Applications' && <section className="panel page-placeholder"><div className="big-icon">✓</div><h2>Applications</h2><p>Application tracking is kept approval-gated. No application is submitted automatically.</p></section>}
     </main>
   </div>
 }
 
+
+function Portfolio({projects}:{projects:any[]}) { const major=projects.filter(p=>p.project_type==='major'); const minor=projects.filter(p=>p.project_type==='minor'); return <section className="panel page"><Head title="120-day portfolio" sub={`${major.length} major + ${minor.length} minor projects. Only the highest-value work should be active.`}/><div className="project-grid">{projects.map(p=><article className={`project-card ${p.status==='in_progress'?'active-project':''}`} key={p.id}><div><span>{p.project_type.toUpperCase()}</span><strong>{p.name}</strong><small>{p.status} · {p.progress_percent||0}%</small></div><div className="project-bar"><i style={{width:`${Math.min(p.progress_percent||0,100)}%`}}/></div></article>)}</div></section> }
+function LinkedIn({drafts}:{drafts:any[]}) { return <section className="panel page"><Head title="LinkedIn drafts" sub="Genuine work only. Publishing remains approval-gated."/><div className="drafts">{drafts.length ? drafts.map(d=><article className="draft" key={d.id}><span>{d.status}</span><h3>{d.title}</h3><p>{d.body}</p><small>Source: {d.source_work_summary||'Recorded career-agent work'}</small></article>) : <Empty text="No drafts available yet."/>}</div></section> }
+function GitHubStatus({status}:{status:any}) { return <section className="panel page"><Head title="GitHub health" sub="Real repository activity only."/><div className="health-grid"><Stat label="CI" value={status?.github_ci||'Unknown'} delta="Verified from repository status"/><Stat label="PR" value={status?.github_pr||'Unknown'} delta="Current research reliability PR"/><Stat label="Automation" value={status?.automation||'Unknown'} delta="Agent configuration"/><Stat label="Telegram" value={status?.telegram||'Unknown'} delta="Notification integration"/></div></section> }
 function Overview({matches,skills,high,readiness,expiring,setTab}:{matches:Opportunity[];skills:MarketSkill[];high:number;readiness:number;expiring:number;setTab:(x:string)=>void}) {
  return <>
   <section className="stats"><Stat label="Apply-now matches" value={String(high)} delta="75%+ automatic ranking"/><Stat label="Opportunities tracked" value={String(matches.length)} delta="Across all relevant roles"/><Stat label="Skill readiness" value={`${readiness}%`} delta="Current market skills"/><Stat label="Closing soon" value={String(expiring)} delta="Deadline within 7 days"/></section>
@@ -66,4 +73,4 @@ function SkillRow({s,count=false}:{s:MarketSkill;count?:boolean}) { return <div 
 function Stat({label,value,delta}:{label:string;value:string;delta:string}){return <div className="stat"><span>{label}</span><strong>{value}</strong><small>{delta}</small></div>}
 function Head({title,sub,action,onClick}:{title:string;sub:string;action?:string;onClick?:()=>void}){return <div className="panel-head"><div><h2>{title}</h2><p>{sub}</p></div>{action&&<button className="link" onClick={onClick}>{action}</button>}</div>}
 function Empty({text}:{text:string}){return <div className="empty">{text}</div>}
-function icon(x:string){return ({Overview:'⌂',Opportunities:'◈','Skill Intelligence':'◎',Applications:'✓',GitHub:'◉',LinkedIn:'in','Research Agent':'⌁'} as Record<string,string>)[x]||'•'}
+function icon(x:string){return ({Overview:'⌂',Opportunities:'◈','Skill Intelligence:'◎',Portfolio:'▦',Applications:'✓',GitHub:'◉',LinkedIn:'in','Research Agent':'⌁'} as Record<string,string>)[x]||'•'}
