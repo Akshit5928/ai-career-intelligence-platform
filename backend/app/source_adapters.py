@@ -93,7 +93,7 @@ def _html_card_candidates(html: str, page_url: str, fallback_role: str, company:
 def scan_source(source: dict, fallback_role: str) -> tuple[list[dict], list[str]]:
     adapter = adapter_for(source)
     base = source["base_url"].rstrip("/") + "/"
-    pages = [urljoin(base, path.lstrip("/")) for path in adapter.paths]
+    pages = [urljoin(base, path) for path in adapter.paths]
     if base not in pages:
         pages.insert(0, base)
     pages = list(dict.fromkeys(pages))[: adapter.max_pages]
