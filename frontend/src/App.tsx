@@ -16,8 +16,17 @@ export default function App() {
   const load = React.useCallback(async () => {
     setError('')
     try {
-      const [m, s, c, r, d, p, st] = await Promise.all([api.getMatches(), api.getMarketSkills(), api.getAgentCycles(), api.getResearchRuns(), api.getLinkedInDrafts(), api.getProjects(), api.getSystemStatus()])
-      setMatches(m); setSkills(s); setCycles(c); setRuns(r); setDrafts(d); setProjects(p); setStatus(st)
+      const [m, s, c, r, d, p, st] = await Promise.all([
+        api.getMatches(), api.getMarketSkills(), api.getAgentCycles(), api.getResearchRuns(),
+        api.getLinkedInDrafts(), api.getProjects(), api.getSystemStatus(),
+      ])
+      setMatches(m)
+      setSkills(s)
+      setCycles(c)
+      setRuns(r)
+      setDrafts(d)
+      setProjects(p)
+      setStatus(st)
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to connect to FastAPI') }
   }, [])
 
@@ -47,7 +56,10 @@ export default function App() {
       {tab === 'Opportunities' && <Opportunities matches={matches} />}
       {tab === 'Skill Intelligence' && <Skills skills={skills} />}
       {tab === 'Research Agent' && <Research cycles={cycles} runs={runs} busy={busy} runCycle={runCycle} />}
-      {tab === 'Portfolio' && <Portfolio projects={projects} />} {tab === 'LinkedIn' && <LinkedIn drafts={drafts}/>} {tab === 'GitHub' && <GitHubStatus status={status}/>} {tab === 'Applications' && <section className="panel page-placeholder"><div className="big-icon">✓</div><h2>Applications</h2><p>Application tracking is kept approval-gated. No application is submitted automatically.</p></section>}
+      {tab === 'Portfolio' && <Portfolio projects={projects} />}
+      {tab === 'LinkedIn' && <LinkedIn drafts={drafts} />}
+      {tab === 'GitHub' && <GitHubStatus status={status} />}
+      {tab === 'Applications' && <section className="panel page-placeholder"><div className="big-icon">✓</div><h2>Applications</h2><p>Application tracking is kept approval-gated. No application is submitted automatically.</p></section>}
     </main>
   </div>
 }
