@@ -1,4 +1,4 @@
-from backend.app import source_adapters
+from urllib.parse import urljoin\n\nfrom backend.app import source_adapters
 
 
 def test_adapter_catalog_has_priority_sources():
