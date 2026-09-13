@@ -12,6 +12,9 @@ def run_research_v21() -> dict:
 
     Adapter failures are isolated per source. Dynamic/blocked sources are recorded
     instead of pretending that a zero-result scan means there are no jobs.
+    A source run remains completed when discovery finished with recoverable
+    scan warnings; warning details stay in error_message. The parent agent cycle
+    can still expose an overall completed_with_errors status.
     """
     db = get_supabase()
     sources = (
@@ -37,14 +40,12 @@ def run_research_v21() -> dict:
             candidates, scan_errors = scan_source(source, fallback)
             found = len(candidates)
             new = _persist_candidates(db, run["id"], source.get("id"), candidates)
-            status = "completed_with_errors" if scan_errors else "completed"
-            error_message = " | ".join(scan_errors[:20]) if scan_errors else None
             db.table("research_runs").update({
                 "finished_at": datetime.now(timezone.utc).isoformat(),
-                "status": status,
+                "status": "completed",
                 "opportunities_found": found,
                 "opportunities_new": new,
-                "error_message": error_message,
+                "error_message": " | ".join(scan_errors[:20]) if scan_errors else None,
             }).eq("id", run["id"]).execute()
             errors.extend(f"{name}: {item}" for item in scan_errors[:20])
         except Exception as exc:
