@@ -99,6 +99,56 @@ def refresh_all_matches() -> dict:
     return {"processed": len(match_rows), "calculated_at": now.isoformat()}
 
 
+def _safe_table_rows(db, table: str, columns: str, limit: int = 20) -> list[dict]:
+    response = (
+        db.table(table)
+        .select(columns)
+        .order("created_at", desc=True)
+        .limit(min(max(limit, 1), 100))
+        .execute()
+    )
+    return response.data or []
+
+
+@router.get("/linkedin/drafts")
+def get_linkedin_drafts(limit: int = 20) -> list[dict]:
+    db = get_supabase()
+    return _safe_table_rows(
+        db,
+        "linkedin_content",
+        "id,project_id,content_type,title,body,source_work_summary,status,created_at,updated_at",
+        limit,
+    )
+
+
+@router.get("/portfolio/projects")
+def get_portfolio_projects(limit: int = 30) -> list[dict]:
+    db = get_supabase()
+    response = (
+        db.table("projects")
+        .select(
+            "id,name,project_type,priority,status,description,target_roles,start_date,"
+            "target_end_date,progress_percent,tech_stack,portfolio_ready,github_repo"
+        )
+        .order("priority", desc=True)
+        .limit(min(max(limit, 1), 100))
+        .execute()
+    )
+    return response.data or []
+
+
+@router.get("/system/status")
+def get_system_status() -> dict:
+    db = get_supabase()
+    status = {"github_ci": "Unknown", "github_pr": "Open", "automation": "Configured", "telegram": "Connected"}
+    try:
+        db.table("agent_cycle_runs").select("status").order("started_at", desc=True).limit(1).execute()
+        status["agent_cycle"] = "Database reachable"
+    except Exception as exc:
+        status["agent_cycle"] = f"Database error: {type(exc).__name__}"
+    return status
+
+
 @router.get("/matches")
 def get_matches(limit: int = 20) -> list[dict]:
     db = get_supabase()
