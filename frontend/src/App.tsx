@@ -40,8 +40,14 @@ export default function App() {
   }
 
   const high = matches.filter(x => x.score >= 75).length
-  const readiness = skills.length ? Math.round(skills.reduce((a, x) => a + x.user_proficiency, 0) / skills.length) : 0
-  const expiring = matches.filter(x => x.internships.deadline && new Date(x.internships.deadline).getTime() - Date.now() < 7 * 86400000 && new Date(x.internships.deadline).getTime() > Date.now()).length
+  const readiness = skills.length
+    ? Math.round(skills.reduce((a, x) => a + x.user_proficiency, 0) / skills.length)
+    : 0
+  const expiring = matches.filter(x => {
+    if (!x.internships.deadline) return false
+    const time = new Date(x.internships.deadline).getTime() - Date.now()
+    return time < 7 * 86400000 && time > 0
+  }).length
 
   return <div className="app">
     <aside className="sidebar">
