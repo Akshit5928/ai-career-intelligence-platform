@@ -19,4 +19,7 @@ export const api = {
   refreshMatches: () => request<{ processed: number; calculated_at: string }>('/api/v1/match/refresh', { method: 'POST' }),
   refreshMarket: () => request('/api/v1/market/refresh', { method: 'POST' }),
   runCycle: () => request('/api/v1/agent/cycle', { method: 'POST' }),
+  getLinkedInDrafts: (limit = 20) => request<any[]>(`/api/v1/linkedin/drafts?limit=${limit}`),
+  getProjects: (limit = 30) => request<any[]>(`/api/v1/portfolio/projects?limit=${limit}`),
+  getSystemStatus: () => request<any>('/api/v1/system/status'),
 }
