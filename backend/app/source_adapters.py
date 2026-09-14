@@ -23,8 +23,8 @@ class SourceAdapter:
 
 
 ADAPTERS: dict[str, SourceAdapter] = {
-    "Unstop": SourceAdapter("unstop", ("/internships", "/jobs", "/work-from-home-jobs", "/opportunities"), 45, 90),
-    "Internshala": SourceAdapter("internshala", ("/internships/", "/internships/work-from-home-jobs/", "/internships/keywords-machine-learning-internship/", "/internships/keywords-data-science-internship/", "/internships/keywords-data-analyst-internship/"), 45, 90),
+    "Unstop": SourceAdapter(\n        "unstop", ("/internships", "/jobs", "/work-from-home-jobs", "/opportunities"), 45, 90\n    ),
+    "Internshala": SourceAdapter(\n        "internshala",\n        ("/internships/", "/internships/work-from-home-jobs/", "/internships/keywords-machine-learning-internship/", "/internships/keywords-data-science-internship/", "/internships/keywords-data-analyst-internship/"),\n        45,\n        90,\n    ),
     "AICTE Internship Portal": SourceAdapter("aicte", ("/internship-portal/", "/internship/", "/search/"), 35, 95),
     "LinkedIn Jobs": SourceAdapter("linkedin", ("/jobs/search/?keywords=machine%20learning%20intern", "/jobs/search/?keywords=data%20analyst%20intern", "/jobs/search/?keywords=artificial%20intelligence%20intern"), 20, 85),
     "Indeed India": SourceAdapter("indeed", ("/jobs?q=machine+learning+intern&l=India", "/jobs?q=data+analyst+intern&l=India", "/jobs?q=data+science+intern&l=India"), 25, 85),
