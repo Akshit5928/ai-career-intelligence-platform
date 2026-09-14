@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -77,15 +77,17 @@ def analyze_market(
         proficiency_gap = max(0.0, (target - proficiency) / target * 100)
         demand_share = count / opportunities * 100
         gap_score = round(demand_share * 0.65 + proficiency_gap * 0.35, 2)
-        results.append(SkillDemand(
-            skill_name=display_names[normalized],
-            demand_count=count,
-            demand_share=round(demand_share, 2),
-            user_proficiency=proficiency,
-            target_proficiency=target,
-            gap_score=gap_score,
-            priority=_priority(gap_score),
-        ))
+        results.append(
+            SkillDemand(
+                skill_name=display_names[normalized],
+                demand_count=count,
+                demand_share=round(demand_share, 2),
+                user_proficiency=proficiency,
+                target_proficiency=target,
+                gap_score=gap_score,
+                priority=_priority(gap_score),
+            )
+        )
 
     return sorted(results, key=lambda item: (item.gap_score, item.demand_share), reverse=True)
 
