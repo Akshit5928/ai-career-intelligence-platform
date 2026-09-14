@@ -28,7 +28,7 @@ ADAPTERS: dict[str, SourceAdapter] = {
     ),
     "Internshala": SourceAdapter(
         "internshala",
-        ("/internships/", "/internships/work-from-home-jobs/", "/internships/keywords-machine-learning-internship/", "/internships/keywords-data-science-internship/", "/internships/keywords-data-analyst-internship/"),
+        (\n            "/internships/",\n            "/internships/work-from-home-jobs/",\n            "/internships/keywords-machine-learning-internship/",\n            "/internships/keywords-data-science-internship/",\n            "/internships/keywords-data-analyst-internship/",\n        ),
         45,
         90,
     ),
