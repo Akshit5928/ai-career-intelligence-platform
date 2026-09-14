@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from urllib.parse import urljoin, urlparse
 import re
+from urllib.parse import urljoin, urlparse
 
 from backend.app.research_engine import (
     _candidate,
@@ -62,30 +62,43 @@ ADAPTERS: dict[str, SourceAdapter] = {
 
 
 def adapter_for(source: dict) -> SourceAdapter:
-    return ADAPTERS.get(source.get("name"), SourceAdapter("generic", ("/careers", "/jobs", "/internships", "/opportunities", "/career"), 30, 75))
+    return ADAPTERS.get(
+        source.get("name"),
+        SourceAdapter("generic", ("/careers", "/jobs", "/internships", "/opportunities", "/career"), 30, 75),
+    )
 
 
-def _looks_like_job_card(text: str) -> bool:
-    lowered = text.lower()
-    role_terms = ("ai", "machine learning", "data analyst", "data science", "software engineer", "mlops", "generative ai", "llm")
-    return _is_internship(text) and any(term in lowered for term in role_terms)
+def _looks_like_job_card(text: str, title: str = "") -> bool:
+    role_terms = (
+        "ai", "machine learning", "data analyst", "data science", "software engineer",
+        "mlops", "generative ai", "llm",
+    )
+    return _is_internship(text) and any(term in title.lower() for term in role_terms)
 
 
 def _html_card_candidates(html: str, page_url: str, fallback_role: str, company: str) -> list[dict]:
     results: list[dict] = []
-    blocks = re.findall(r'<(?:article|li|div)[^>]*>(.*?)</(?:article|li|div)>', html, flags=re.I | re.S)
+    blocks = re.findall(
+        r'<(?:article|li|div)[^>]*>(.*?)</(?:article|li|div)>', html, flags=re.I | re.S
+    )
     for block in blocks[:250]:
         text = _clean(re.sub(r"<[^>]+>", " ", block))
-        if not text or len(text) < 20 or len(text) > 1800 or not _looks_like_job_card(text):
+        if not text or len(text) < 20 or len(text) > 1800:
             continue
         hrefs = re.findall(r'<a[^>]+href=["\']([^"\']+)["\']', block, flags=re.I)
         if not hrefs:
             continue
+        title_match = re.search(
+            r'<(?:h1|h2|h3|h4|a)[^>]*>(.*?)</(?:h1|h2|h3|h4|a)>',
+            block,
+            flags=re.I | re.S,
+        )
+        title = _clean(re.sub(r"<[^>]+>", " ", title_match.group(1))) if title_match else text[:180]
+        if not _looks_like_job_card(text, title):
+            continue
         link = urljoin(page_url, hrefs[0])
         if urlparse(link).scheme not in ("http", "https"):
             continue
-        title_match = re.search(r'<(?:h1|h2|h3|h4|a)[^>]*>(.*?)</(?:h1|h2|h3|h4|a)>', block, flags=re.I | re.S)
-        title = _clean(re.sub(r"<[^>]+>", " ", title_match.group(1))) if title_match else text[:180]
         results.append(_candidate(title, link, text, fallback_role, page_url, company))
     return results
 
@@ -93,7 +106,7 @@ def _html_card_candidates(html: str, page_url: str, fallback_role: str, company:
 def scan_source(source: dict, fallback_role: str) -> tuple[list[dict], list[str]]:
     adapter = adapter_for(source)
     base = source["base_url"].rstrip("/") + "/"
-    pages = [urljoin(base, path.lstrip("/")) for path in adapter.paths]
+    pages = [urljoin(base, path) for path in adapter.paths]
     if base not in pages:
         pages.insert(0, base)
     pages = list(dict.fromkeys(pages))[: adapter.max_pages]

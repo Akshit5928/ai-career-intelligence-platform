@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.app.db import get_supabase
-from backend.app.market_intelligence import analyze_market, build_market_report
 from backend.app.matching import calculate_match
+from backend.app.market_intelligence import analyze_market, build_market_report
 from backend.app.research_v21 import run_research_v21
 
 router = APIRouter(prefix="/api/v1", tags=["career"])
@@ -44,17 +44,36 @@ def match_opportunity(request: MatchRequest) -> dict:
 
 
 def _load_profile(db):
-    config_response = db.table("agent_config").select("target_roles,target_locations,relocation_ok").order("created_at", desc=True).limit(1).execute()
+    config_response = (
+        db.table("agent_config")
+        .select("target_roles,target_locations,relocation_ok")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
     config_rows = config_response.data or []
     if not config_rows:
         raise HTTPException(status_code=404, detail="Agent configuration not found")
     config = config_rows[0]
-    skills_response = db.table("user_skills").select("skill_name,proficiency,target_proficiency").eq("status", "active").execute()
+    skills_response = (
+        db.table("user_skills")
+        .select("skill_name,proficiency,target_proficiency")
+        .eq("status", "active")
+        .execute()
+    )
     return config, skills_response.data or []
 
 
 def _load_active_internships(db):
-    response = db.table("internships").select("id,role_title,role_category,required_skills,preferred_skills,location,eligibility,deadline,status").eq("status", "active").execute()
+    response = (
+        db.table("internships")
+        .select(
+            "id,role_title,role_category,required_skills,preferred_skills,"
+            "location,eligibility,deadline,status"
+        )
+        .eq("status", "active")
+        .execute()
+    )
     return response.data or []
 
 
@@ -90,7 +109,12 @@ def refresh_all_matches() -> dict:
             "reasons": result.reasons, "calculated_at": now.isoformat(),
         })
         priority = "high" if result.score >= 75 else "medium" if result.score >= 50 else "low"
-        updates.append({"id": internship["id"], "match_score": result.score, "missing_skills": result.missing_skills, "priority": priority})
+        updates.append({
+            "id": internship["id"],
+            "match_score": result.score,
+            "missing_skills": result.missing_skills,
+            "priority": priority,
+        })
     if match_rows:
         db.table("internship_matches").upsert(match_rows, on_conflict="internship_id").execute()
         for update in updates:
@@ -99,10 +123,82 @@ def refresh_all_matches() -> dict:
     return {"processed": len(match_rows), "calculated_at": now.isoformat()}
 
 
+def _safe_table_rows(db, table: str, columns: str, limit: int = 20) -> list[dict]:
+    response = (
+        db.table(table)
+        .select(columns)
+        .order("created_at", desc=True)
+        .limit(min(max(limit, 1), 100))
+        .execute()
+    )
+    return response.data or []
+
+
+@router.get("/linkedin/drafts")
+def get_linkedin_drafts(limit: int = 20) -> list[dict]:
+    db = get_supabase()
+    return _safe_table_rows(
+        db,
+        "linkedin_content",
+        "id,project_id,content_type,title,body,source_work_summary,status,created_at,updated_at",
+        limit,
+    )
+
+
+@router.get("/portfolio/projects")
+def get_portfolio_projects(limit: int = 30) -> list[dict]:
+    db = get_supabase()
+    response = (
+        db.table("projects")
+        .select(
+            "id,name,project_type,priority,status,description,target_roles,start_date,"
+            "target_end_date,progress_percent,tech_stack,portfolio_ready,github_repo"
+        )
+        .order("priority", desc=True)
+        .limit(min(max(limit, 1), 100))
+        .execute()
+    )
+    return response.data or []
+
+
+@router.get("/system/status")
+def get_system_status() -> dict:
+    db = get_supabase()
+    status = {
+        "github_ci": "Unknown",
+        "github_pr": "Open",
+        "automation": "Configured",
+        "telegram": "Connected",
+    }
+    try:
+        (
+            db.table("agent_cycle_runs")
+            .select("status")
+            .order("started_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        status["agent_cycle"] = "Database reachable"
+    except Exception as exc:
+        status["agent_cycle"] = f"Database error: {type(exc).__name__}"
+    return status
+
+
 @router.get("/matches")
 def get_matches(limit: int = 20) -> list[dict]:
     db = get_supabase()
-    response = db.table("internship_matches").select("id,internship_id,score,skill_score,role_score,location_score,eligibility_score,deadline_score,missing_skills,reasons,calculated_at,internships(company_name,role_title,role_category,location,work_mode,stipend,deadline,application_url)").order("score", desc=True).limit(min(max(limit, 1), 100)).execute()
+    response = (
+        db.table("internship_matches")
+        .select(
+            "id,internship_id,score,skill_score,role_score,location_score,"
+            "eligibility_score,deadline_score,missing_skills,reasons,calculated_at,"
+            "internships(company_name,role_title,role_category,location,work_mode,"
+            "stipend,deadline,application_url)"
+        )
+        .order("score", desc=True)
+        .limit(min(max(limit, 1), 100))
+        .execute()
+    )
     return response.data or []
 
 
@@ -120,7 +216,16 @@ def research_now() -> dict:
 @router.get("/research/runs")
 def get_research_runs(limit: int = 20) -> list[dict]:
     db = get_supabase()
-    response = db.table("research_runs").select("id,source_id,started_at,finished_at,status,opportunities_found,opportunities_new,error_message").order("started_at", desc=True).limit(min(max(limit, 1), 100)).execute()
+    response = (
+        db.table("research_runs")
+        .select(
+            "id,source_id,started_at,finished_at,status,opportunities_found,"
+            "opportunities_new,error_message"
+        )
+        .order("started_at", desc=True)
+        .limit(min(max(limit, 1), 100))
+        .execute()
+    )
     return response.data or []
 
 
@@ -142,14 +247,29 @@ def run_agent_cycle() -> dict:
         }).eq("id", cycle["id"]).execute()
         return {"cycle_id": cycle["id"], "research": research, "matching": matching}
     except Exception as exc:
-        db.table("agent_cycle_runs").update({"finished_at": datetime.now(timezone.utc).isoformat(), "status": "failed", "error_message": str(exc)}).eq("id", cycle["id"]).execute()
+        db.table("agent_cycle_runs").update(
+            {
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "status": "failed",
+                "error_message": str(exc),
+            }
+        ).eq("id", cycle["id"]).execute()
         raise HTTPException(status_code=502, detail=f"Agent cycle failed: {exc}") from exc
 
 
 @router.get("/agent/cycles")
 def get_agent_cycles(limit: int = 20) -> list[dict]:
     db = get_supabase()
-    response = db.table("agent_cycle_runs").select("id,started_at,finished_at,status,discovered_count,new_matches,alerts_created,skill_updates,applications_due,error_message").order("started_at", desc=True).limit(min(max(limit, 1), 100)).execute()
+    response = (
+        db.table("agent_cycle_runs")
+        .select(
+            "id,started_at,finished_at,status,discovered_count,new_matches,"
+            "alerts_created,skill_updates,applications_due,error_message"
+        )
+        .order("started_at", desc=True)
+        .limit(min(max(limit, 1), 100))
+        .execute()
+    )
     return response.data or []
 
 
@@ -158,11 +278,27 @@ def refresh_market_intelligence(window_days: int = 90) -> dict:
     db = get_supabase()
     config, skill_rows = _load_profile(db)
     internships = _load_active_internships(db)
-    demands = analyze_market(internships=internships, user_skills=skill_rows, role_filter=config.get("target_roles") or [], window_days=window_days)
+    demands = analyze_market(
+        internships=internships,
+        user_skills=skill_rows,
+        role_filter=config.get("target_roles") or [],
+        window_days=window_days,
+    )
     report = build_market_report(demands, len(internships))
     report["window_days"] = window_days
     report["generated_at"] = datetime.now(timezone.utc).isoformat()
-    db.table("market_reports").insert({"report_date": datetime.now(timezone.utc).date().isoformat(), "role_category": "multi-role", "summary": report["summary"], "top_skills": report["top_skills"], "sources": {"type": "internship_database", "opportunities": len(internships)}}).execute()
+    db.table("market_reports").insert(
+        {
+            "report_date": datetime.now(timezone.utc).date().isoformat(),
+            "role_category": "multi-role",
+            "summary": report["summary"],
+            "top_skills": report["top_skills"],
+            "sources": {
+                "type": "internship_database",
+                "opportunities": len(internships),
+            },
+        }
+    ).execute()
     return report
 
 
@@ -171,5 +307,20 @@ def get_market_skills(limit: int = 20) -> list[dict]:
     db = get_supabase()
     config, skill_rows = _load_profile(db)
     internships = _load_active_internships(db)
-    demands = analyze_market(internships=internships, user_skills=skill_rows, role_filter=config.get("target_roles") or [])
-    return [{"skill_name": item.skill_name, "demand_count": item.demand_count, "demand_share": item.demand_share, "user_proficiency": item.user_proficiency, "target_proficiency": item.target_proficiency, "gap_score": item.gap_score, "priority": item.priority} for item in demands[: min(max(limit, 1), 100)]]
+    demands = analyze_market(
+        internships=internships,
+        user_skills=skill_rows,
+        role_filter=config.get("target_roles") or [],
+    )
+    return [
+        {
+            "skill_name": item.skill_name,
+            "demand_count": item.demand_count,
+            "demand_share": item.demand_share,
+            "user_proficiency": item.user_proficiency,
+            "target_proficiency": item.target_proficiency,
+            "gap_score": item.gap_score,
+            "priority": item.priority,
+        }
+        for item in demands[: min(max(limit, 1), 100)]
+    ]

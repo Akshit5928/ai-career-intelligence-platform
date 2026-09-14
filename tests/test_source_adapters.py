@@ -45,3 +45,20 @@ def test_html_card_candidate_extracts_ai_internship(monkeypatch):
     assert rows[0]["company_name"] == "Example Co"
     assert "python" in rows[0]["skills"]
     assert "sql" in rows[0]["skills"]
+
+
+def test_html_card_candidate_rejects_non_target_title_with_target_body():
+    html = '''
+    <article>
+      <h3>Senior Accountant</h3>
+      <p>Senior role. Python, AI, machine learning and analytics experience preferred.</p>
+      <a href="/jobs/senior-accountant">Apply</a>
+    </article>
+    '''
+    rows = source_adapters._html_card_candidates(
+        html,
+        "https://example.com/jobs",
+        "AI/ML Intern",
+        "Example Co",
+    )
+    assert rows == []
