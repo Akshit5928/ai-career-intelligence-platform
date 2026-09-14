@@ -71,9 +71,39 @@ export default function App() {
 }
 
 
-function Portfolio({projects}:{projects:any[]}) { const major=projects.filter(p=>p.project_type==='major'); const minor=projects.filter(p=>p.project_type==='minor'); return <section className="panel page"><Head title="120-day portfolio" sub={`${major.length} major + ${minor.length} minor projects. Only the highest-value work should be active.`}/><div className="project-grid">{projects.map(p=><article className={`project-card ${p.status==='in_progress'?'active-project':''}`} key={p.id}><div><span>{p.project_type.toUpperCase()}</span><strong>{p.name}</strong><small>{p.status} · {p.progress_percent||0}%</small></div><div className="project-bar"><i style={{width:`${Math.min(p.progress_percent||0,100)}%`}}/></div></article>)}</div></section> }
-function LinkedIn({drafts}:{drafts:any[]}) { return <section className="panel page"><Head title="LinkedIn drafts" sub="Genuine work only. Publishing remains approval-gated."/><div className="drafts">{drafts.length ? drafts.map(d=><article className="draft" key={d.id}><span>{d.status}</span><h3>{d.title}</h3><p>{d.body}</p><small>Source: {d.source_work_summary||'Recorded career-agent work'}</small></article>) : <Empty text="No drafts available yet."/>}</div></section> }
-function GitHubStatus({status}:{status:any}) { return <section className="panel page"><Head title="GitHub health" sub="Real repository activity only."/><div className="health-grid"><Stat label="CI" value={status?.github_ci||'Unknown'} delta="Verified from repository status"/><Stat label="PR" value={status?.github_pr||'Unknown'} delta="Current research reliability PR"/><Stat label="Automation" value={status?.automation||'Unknown'} delta="Agent configuration"/><Stat label="Telegram" value={status?.telegram||'Unknown'} delta="Notification integration"/></div></section> }
+function Portfolio({projects}:{projects:any[]}) {
+  const major = projects.filter(p => p.project_type === 'major')
+  const minor = projects.filter(p => p.project_type === 'minor')
+  return <section className="panel page">
+    <Head title="120-day portfolio" sub={`${major.length} major + ${minor.length} minor projects. Only the highest-value work should be active.`} />
+    <div className="project-grid">
+      {projects.map(p => <article className={`project-card ${p.status === 'in_progress' ? 'active-project' : ''}`} key={p.id}>
+        <div><span>{p.project_type.toUpperCase()}</span><strong>{p.name}</strong><small>{p.status} · {p.progress_percent || 0}%</small></div>
+        <div className="project-bar"><i style={{width: `${Math.min(p.progress_percent || 0, 100)}%`}} /></div>
+      </article>)}
+    </div>
+  </section>
+}
+function LinkedIn({drafts}:{drafts:any[]}) {
+  return <section className="panel page">
+    <Head title="LinkedIn drafts" sub="Genuine work only. Publishing remains approval-gated." />
+    <div className="drafts">{drafts.length ? drafts.map(d => <article className="draft" key={d.id}>
+      <span>{d.status}</span><h3>{d.title}</h3><p>{d.body}</p>
+      <small>Source: {d.source_work_summary || 'Recorded career-agent work'}</small>
+    </article>) : <Empty text="No drafts available yet." />}</div>
+  </section>
+}
+function GitHubStatus({status}:{status:any}) {
+  return <section className="panel page">
+    <Head title="GitHub health" sub="Real repository activity only." />
+    <div className="health-grid">
+      <Stat label="CI" value={status?.github_ci || 'Unknown'} delta="Verified from repository status" />
+      <Stat label="PR" value={status?.github_pr || 'Unknown'} delta="Current research reliability PR" />
+      <Stat label="Automation" value={status?.automation || 'Unknown'} delta="Agent configuration" />
+      <Stat label="Telegram" value={status?.telegram || 'Unknown'} delta="Notification integration" />
+    </div>
+  </section>
+}
 function Overview({matches,skills,high,readiness,expiring,setTab}:{matches:Opportunity[];skills:MarketSkill[];high:number;readiness:number;expiring:number;setTab:(x:string)=>void}) {
  return <>
   <section className="stats"><Stat label="Apply-now matches" value={String(high)} delta="75%+ automatic ranking"/><Stat label="Opportunities tracked" value={String(matches.length)} delta="Across all relevant roles"/><Stat label="Skill readiness" value={`${readiness}%`} delta="Current market skills"/><Stat label="Closing soon" value={String(expiring)} delta="Deadline within 7 days"/></section>
