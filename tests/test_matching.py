@@ -16,6 +16,7 @@ def test_data_analyst_match_identifies_gaps() -> None:
         required_skills=["Python", "SQL", "Power BI", "Excel"],
         location="Remote",
         eligibility="Freshers / entry-level",
+        role_title="Data Analyst Intern",
         now=NOW,
     )
     assert result.score > 50
@@ -35,6 +36,7 @@ def test_strong_fit_scores_high() -> None:
         location="Remote",
         eligibility="Students / freshers",
         deadline=datetime(2026, 9, 8, tzinfo=timezone.utc),
+        role_title="Data Analyst Intern",
         now=NOW,
     )
     assert result.score >= 90
@@ -51,6 +53,25 @@ def test_relocation_raises_nonmatching_location() -> None:
         required_skills=["Python", "Machine Learning"],
         location="Bangalore",
         eligibility="No experience required",
+        role_title="AI/ML Intern",
         now=NOW,
     )
     assert result.location_score == 60
+
+
+def test_non_target_title_cannot_receive_full_role_score() -> None:
+    result = calculate_match(
+        user_skills=["Python", "SQL", "Power BI", "Excel"],
+        target_roles=["Data Analyst Intern"],
+        target_locations=["India", "Remote"],
+        relocation_ok=True,
+        role_category="Data Analyst",
+        required_skills=["Python", "SQL", "Power BI", "Excel"],
+        location="Remote",
+        eligibility="Students / freshers",
+        role_title="Senior Accountant",
+        now=NOW,
+    )
+    assert result.role_score == 0
+    assert result.score < 80
+    assert any("does not match" in reason for reason in result.reasons)
