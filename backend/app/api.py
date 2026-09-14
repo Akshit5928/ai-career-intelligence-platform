@@ -6,9 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.app.db import get_supabase
-from backend.app.market_intelligence import analyze_market, build_market_report
 from backend.app.matching import calculate_match
-from backend.app.research_v21 import run_research_v21
 
 router = APIRouter(prefix="/api/v1", tags=["career"])
 
