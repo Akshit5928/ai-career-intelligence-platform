@@ -247,14 +247,29 @@ def run_agent_cycle() -> dict:
         }).eq("id", cycle["id"]).execute()
         return {"cycle_id": cycle["id"], "research": research, "matching": matching}
     except Exception as exc:
-        db.table("agent_cycle_runs").update(\n            {\n                "finished_at": datetime.now(timezone.utc).isoformat(),\n                "status": "failed",\n                "error_message": str(exc),\n            }\n        ).eq("id", cycle["id"]).execute()
+        db.table("agent_cycle_runs").update(
+            {
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "status": "failed",
+                "error_message": str(exc),
+            }
+        ).eq("id", cycle["id"]).execute()
         raise HTTPException(status_code=502, detail=f"Agent cycle failed: {exc}") from exc
 
 
 @router.get("/agent/cycles")
 def get_agent_cycles(limit: int = 20) -> list[dict]:
     db = get_supabase()
-    response = (\n        db.table("agent_cycle_runs")\n        .select(\n            "id,started_at,finished_at,status,discovered_count,new_matches,"\n            "alerts_created,skill_updates,applications_due,error_message"\n        )\n        .order("started_at", desc=True)\n        .limit(min(max(limit, 1), 100))\n        .execute()\n    )
+    response = (
+        db.table("agent_cycle_runs")
+        .select(
+            "id,started_at,finished_at,status,discovered_count,new_matches,"
+            "alerts_created,skill_updates,applications_due,error_message"
+        )
+        .order("started_at", desc=True)
+        .limit(min(max(limit, 1), 100))
+        .execute()
+    )
     return response.data or []
 
 
@@ -263,11 +278,27 @@ def refresh_market_intelligence(window_days: int = 90) -> dict:
     db = get_supabase()
     config, skill_rows = _load_profile(db)
     internships = _load_active_internships(db)
-    demands = analyze_market(\n        internships=internships,\n        user_skills=skill_rows,\n        role_filter=config.get("target_roles") or [],\n        window_days=window_days,\n    )
+    demands = analyze_market(
+        internships=internships,
+        user_skills=skill_rows,
+        role_filter=config.get("target_roles") or [],
+        window_days=window_days,
+    )
     report = build_market_report(demands, len(internships))
     report["window_days"] = window_days
     report["generated_at"] = datetime.now(timezone.utc).isoformat()
-    db.table("market_reports").insert(\n        {\n            "report_date": datetime.now(timezone.utc).date().isoformat(),\n            "role_category": "multi-role",\n            "summary": report["summary"],\n            "top_skills": report["top_skills"],\n            "sources": {\n                "type": "internship_database",\n                "opportunities": len(internships),\n            },\n        }\n    ).execute()
+    db.table("market_reports").insert(
+        {
+            "report_date": datetime.now(timezone.utc).date().isoformat(),
+            "role_category": "multi-role",
+            "summary": report["summary"],
+            "top_skills": report["top_skills"],
+            "sources": {
+                "type": "internship_database",
+                "opportunities": len(internships),
+            },
+        }
+    ).execute()
     return report
 
 
@@ -276,5 +307,20 @@ def get_market_skills(limit: int = 20) -> list[dict]:
     db = get_supabase()
     config, skill_rows = _load_profile(db)
     internships = _load_active_internships(db)
-    demands = analyze_market(\n        internships=internships,\n        user_skills=skill_rows,\n        role_filter=config.get("target_roles") or [],\n    )
-    return [\n        {\n            "skill_name": item.skill_name,\n            "demand_count": item.demand_count,\n            "demand_share": item.demand_share,\n            "user_proficiency": item.user_proficiency,\n            "target_proficiency": item.target_proficiency,\n            "gap_score": item.gap_score,\n            "priority": item.priority,\n        }\n        for item in demands[: min(max(limit, 1), 100)]\n    ]
+    demands = analyze_market(
+        internships=internships,
+        user_skills=skill_rows,
+        role_filter=config.get("target_roles") or [],
+    )
+    return [
+        {
+            "skill_name": item.skill_name,
+            "demand_count": item.demand_count,
+            "demand_share": item.demand_share,
+            "user_proficiency": item.user_proficiency,
+            "target_proficiency": item.target_proficiency,
+            "gap_score": item.gap_score,
+            "priority": item.priority,
+        }
+        for item in demands[: min(max(limit, 1), 100)]
+    ]
