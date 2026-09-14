@@ -42,17 +42,17 @@ def match_opportunity(request: MatchRequest) -> dict:
 
 
 def _load_profile(db):
-    config_response = db.table("agent_config").select("target_roles,target_locations,relocation_ok").order("created_at", desc=True).limit(1).execute()
+    config_response = (\n        db.table("agent_config")\n        .select("target_roles,target_locations,relocation_ok")\n        .order("created_at", desc=True)\n        .limit(1)\n        .execute()\n    )
     config_rows = config_response.data or []
     if not config_rows:
         raise HTTPException(status_code=404, detail="Agent configuration not found")
     config = config_rows[0]
-    skills_response = db.table("user_skills").select("skill_name,proficiency,target_proficiency").eq("status", "active").execute()
+    skills_response = (\n        db.table("user_skills")\n        .select("skill_name,proficiency,target_proficiency")\n        .eq("status", "active")\n        .execute()\n    )
     return config, skills_response.data or []
 
 
 def _load_active_internships(db):
-    response = db.table("internships").select("id,role_title,role_category,required_skills,preferred_skills,location,eligibility,deadline,status").eq("status", "active").execute()
+    response = (\n        db.table("internships")\n        .select(\n            "id,role_title,role_category,required_skills,preferred_skills,"\n            "location,eligibility,deadline,status"\n        )\n        .eq("status", "active")\n        .execute()\n    )
     return response.data or []
 
 
@@ -88,7 +88,7 @@ def refresh_all_matches() -> dict:
             "reasons": result.reasons, "calculated_at": now.isoformat(),
         })
         priority = "high" if result.score >= 75 else "medium" if result.score >= 50 else "low"
-        updates.append({"id": internship["id"], "match_score": result.score, "missing_skills": result.missing_skills, "priority": priority})
+        updates.append({\n            "id": internship["id"],\n            "match_score": result.score,\n            "missing_skills": result.missing_skills,\n            "priority": priority,\n        })
     if match_rows:
         db.table("internship_matches").upsert(match_rows, on_conflict="internship_id").execute()
         for update in updates:
@@ -138,9 +138,9 @@ def get_portfolio_projects(limit: int = 30) -> list[dict]:
 @router.get("/system/status")
 def get_system_status() -> dict:
     db = get_supabase()
-    status = {"github_ci": "Unknown", "github_pr": "Open", "automation": "Configured", "telegram": "Connected"}
+    status = {\n        "github_ci": "Unknown",\n        "github_pr": "Open",\n        "automation": "Configured",\n        "telegram": "Connected",\n    }
     try:
-        db.table("agent_cycle_runs").select("status").order("started_at", desc=True).limit(1).execute()
+        (\n            db.table("agent_cycle_runs")\n            .select("status")\n            .order("started_at", desc=True)\n            .limit(1)\n            .execute()\n        )
         status["agent_cycle"] = "Database reachable"
     except Exception as exc:
         status["agent_cycle"] = f"Database error: {type(exc).__name__}"
@@ -150,7 +150,7 @@ def get_system_status() -> dict:
 @router.get("/matches")
 def get_matches(limit: int = 20) -> list[dict]:
     db = get_supabase()
-    response = db.table("internship_matches").select("id,internship_id,score,skill_score,role_score,location_score,eligibility_score,deadline_score,missing_skills,reasons,calculated_at,internships(company_name,role_title,role_category,location,work_mode,stipend,deadline,application_url)").order("score", desc=True).limit(min(max(limit, 1), 100)).execute()
+    response = (\n        db.table("internship_matches")\n        .select(\n            "id,internship_id,score,skill_score,role_score,location_score,"\n            "eligibility_score,deadline_score,missing_skills,reasons,calculated_at,"\n            "internships(company_name,role_title,role_category,location,work_mode,"\n            "stipend,deadline,application_url)"\n        )\n        .order("score", desc=True)\n        .limit(min(max(limit, 1), 100))\n        .execute()\n    )
     return response.data or []
 
 
@@ -168,7 +168,7 @@ def research_now() -> dict:
 @router.get("/research/runs")
 def get_research_runs(limit: int = 20) -> list[dict]:
     db = get_supabase()
-    response = db.table("research_runs").select("id,source_id,started_at,finished_at,status,opportunities_found,opportunities_new,error_message").order("started_at", desc=True).limit(min(max(limit, 1), 100)).execute()
+    response = (\n        db.table("research_runs")\n        .select(\n            "id,source_id,started_at,finished_at,status,opportunities_found,"\n            "opportunities_new,error_message"\n        )\n        .order("started_at", desc=True)\n        .limit(min(max(limit, 1), 100))\n        .execute()\n    )
     return response.data or []
 
 
