@@ -12,9 +12,12 @@ export default function App() {
   const [status, setStatus] = React.useState<any>(null)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [loading, setLoading] = React.useState(true)
+  const [lastSync, setLastSync] = React.useState<Date | null>(null)
 
   const load = React.useCallback(async () => {
     setError('')
+    setLoading(true)
     try {
       const [m, s, c, r, d, p, st] = await Promise.all([
         api.getMatches(), api.getMarketSkills(), api.getAgentCycles(), api.getResearchRuns(),
@@ -27,7 +30,9 @@ export default function App() {
       setDrafts(d)
       setProjects(p)
       setStatus(st)
+      setLastSync(new Date())
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to connect to FastAPI') }
+    finally { setLoading(false) }
   }, [])
 
   React.useEffect(() => { load() }, [load])
@@ -56,16 +61,18 @@ export default function App() {
       <div className="agent-card"><div className="live"><i/> Agent connected</div><strong>AI ranking is automatic</strong><p>No manual role filtering. The system ranks every relevant opportunity against your profile.</p><button onClick={runCycle} disabled={busy}>{busy ? 'Running research…' : 'Run agent cycle'}</button></div>
     </aside>
     <main>
-      <header><div><p className="eyebrow">CAREER INTELLIGENCE · LIVE</p><h1>{tab}</h1><p className="sub">One ranked feed across AI/ML, Data, GenAI, Software, Research and more.</p></div><div className="header-actions"><button className="ghost" onClick={runCycle} disabled={busy}>↻ {busy ? 'Syncing' : 'Sync now'}</button><div className="avatar">AJ</div></div></header>
-      {error && <div className="error">{error}<br/><small>Make sure FastAPI is running and VITE_API_BASE_URL points to it.</small></div>}
-      {tab === 'Overview' && <Overview matches={matches} skills={skills} high={high} readiness={readiness} expiring={expiring} setTab={setTab} />}
-      {tab === 'Opportunities' && <Opportunities matches={matches} />}
-      {tab === 'Skill Intelligence' && <Skills skills={skills} />}
-      {tab === 'Research Agent' && <Research cycles={cycles} runs={runs} busy={busy} runCycle={runCycle} />}
-      {tab === 'Portfolio' && <Portfolio projects={projects} />}
-      {tab === 'LinkedIn' && <LinkedIn drafts={drafts} />}
-      {tab === 'GitHub' && <GitHubStatus status={status} />}
-      {tab === 'Applications' && <section className="panel page-placeholder"><div className="big-icon">✓</div><h2>Applications</h2><p>Application tracking is kept approval-gated. No application is submitted automatically.</p></section>}
+      <header><div><p className="eyebrow">CAREER INTELLIGENCE · {loading ? 'CONNECTING' : 'LIVE'}</p><h1>{tab}</h1><p className="sub">One ranked feed across AI/ML, Data, GenAI, Software, Research and more.</p></div><div className="header-actions"><button className="ghost" onClick={load} disabled={loading || busy}>↻ Refresh</button><button className="ghost" onClick={runCycle} disabled={busy}>↻ {busy ? 'Syncing' : 'Sync now'}</button><div className="avatar">AJ</div></div></header>
+      {lastSync && <div className="sync-line">Last sync: {lastSync.toLocaleString('en-IN')} · {matches.length} matches · {skills.length} skills · {projects.length} portfolio items</div>}
+      {error && <div className="error">{error}<br/><small>Check FastAPI, VITE_API_BASE_URL and Supabase connectivity.</small></div>}
+      {loading && !error && <section className="panel page-placeholder"><div className="big-icon">◌</div><h2>Loading career intelligence…</h2><p>Fetching opportunities, skill demand, research history, portfolio progress and public-action status.</p></section>}
+      {!loading && tab === 'Overview' && <Overview matches={matches} skills={skills} high={high} readiness={readiness} expiring={expiring} setTab={setTab} />}
+      {!loading && tab === 'Opportunities' && <Opportunities matches={matches} />}
+      {!loading && tab === 'Skill Intelligence' && <Skills skills={skills} />}
+      {!loading && tab === 'Research Agent' && <Research cycles={cycles} runs={runs} busy={busy} runCycle={runCycle} />}
+      {!loading && tab === 'Portfolio' && <Portfolio projects={projects} />}
+      {!loading && tab === 'LinkedIn' && <LinkedIn drafts={drafts} />}
+      {!loading && tab === 'GitHub' && <GitHubStatus status={status} />}
+      {!loading && tab === 'Applications' && <section className="panel page-placeholder"><div className="big-icon">✓</div><h2>Applications</h2><p>Application tracking is kept approval-gated. No application is submitted automatically.</p></section>}
     </main>
   </div>
 }
@@ -113,7 +120,23 @@ function Overview({matches,skills,high,readiness,expiring,setTab}:{matches:Oppor
  </>
 }
 
-function Opportunities({matches}:{matches:Opportunity[]}) { return <section className="panel page"><Head title="All ranked opportunities" sub={`${matches.length} opportunities sorted by match score — role categories are handled automatically.`}/><div className="opps full">{matches.map(x=><OpportunityCard key={x.internship_id} match={x} detailed/>)}{!matches.length&&<Empty text="Run an agent cycle to discover opportunities."/>}</div></section> }
+function Opportunities({matches}:{matches:Opportunity[]}) {
+  const [query,setQuery]=React.useState('')
+  const [minScore,setMinScore]=React.useState(0)
+  const [category,setCategory]=React.useState('All')
+  const categories=['All',...Array.from(new Set(matches.map(x=>x.internships.role_category).filter(Boolean)))]
+  const filtered=matches.filter(x=>{
+    const i=x.internships
+    const hay=`${i.company_name} ${i.role_title} ${i.location||''} ${i.role_category||''}`.toLowerCase()
+    return hay.includes(query.toLowerCase()) && x.score>=minScore && (category==='All'||i.role_category===category)
+  }).sort((a,b)=>b.score-a.score)
+  return <section className="panel page">
+    <Head title="All ranked opportunities" sub={`${filtered.length} of ${matches.length} opportunities · sorted by match score.`}/>
+    <div className="filters">
+      <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search company, role, location…" />
+      <select value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(x=><option key={x}>{x}</option>)}</select>
+      <select value={minScore} onChange={e=>setMinScore(Number(e.target.value))}><option value="0">Any match</option><option value="60">60%+</option><option value="75">75%+</option><option value="85">85%+</option></select>
+    </div><div className="opps full">{matches.map(x=><OpportunityCard key={x.internship_id} match={x} detailed/>)}{!matches.length&&<Empty text="Run an agent cycle to discover opportunities."/>}</div></section> }
 function Skills({skills}:{skills:MarketSkill[]}) { return <section className="panel page"><Head title="Market skill intelligence" sub="Learn what employers are repeatedly asking for, then prioritize the gaps that matter most."/><div className="skill-list large">{skills.map(x=><SkillRow key={x.skill_name} s={x} count/>)}</div></section> }
 function Research({cycles,runs,busy,runCycle}:{cycles:AgentCycle[];runs:ResearchRun[];busy:boolean;runCycle:()=>void}) { return <section className="panel page"><div className="panel-head"><div><h2>Research Agent</h2><p>Auditable discovery cycles and source health.</p></div><button className="primary" onClick={runCycle} disabled={busy}>{busy?'Running…':'Run full cycle'}</button></div><h3>Recent agent cycles</h3><div className="table">{cycles.slice(0,8).map(c=><div className="table-row" key={c.id}><b>{c.status}</b><span>{c.discovered_count} discovered</span><span>{c.new_matches} new</span><time>{new Date(c.started_at).toLocaleString('en-IN')}</time></div>)}</div><h3>Recent source runs</h3><div className="table">{runs.slice(0,12).map(r=><div className="table-row" key={r.id}><b>{r.status}</b><span>{r.opportunities_found} found</span><span>{r.opportunities_new} new</span><time>{new Date(r.started_at).toLocaleString('en-IN')}</time></div>)}</div></section> }
 function OpportunityCard({match,detailed=false}:{match:Opportunity;detailed?:boolean}) { const i=match.internships; const apply=match.score>=75?'APPLY NOW':match.score>=60?'STRONG MATCH':'REVIEW'; return <article className={`opportunity ${detailed?'detailed':''}`}><div className="company-logo">{(i.company_name||'AI').slice(0,2).toUpperCase()}</div><div className="opp-main"><div className="opp-title"><strong>{i.role_title}</strong><label className={match.score>=75?'hot':''}>{apply}</label></div><span>{i.company_name} · {i.location||'Location not specified'}{i.work_mode?` · ${i.work_mode}`:''}</span><div className="tags"><label>{i.role_category}</label>{(match.missing_skills||[]).slice(0,4).map(s=><label className="missing" key={s}>Missing {s}</label>)}</div>{detailed&&<small className="deadline">{i.stipend?`Stipend: ₹${i.stipend} · `:''}{i.deadline?`Deadline: ${new Date(i.deadline).toLocaleDateString('en-IN')}`:'No deadline listed'}</small>}</div><div className="score"><strong>{Math.round(match.score)}%</strong><span>match</span>{i.application_url&&<a href={i.application_url} target="_blank" rel="noreferrer">Apply ↗</a>}</div></article> }
