@@ -144,4 +144,4 @@ function SkillRow({s,count=false}:{s:MarketSkill;count?:boolean}) { return <div 
 function Stat({label,value,delta}:{label:string;value:string;delta:string}){return <div className="stat"><span>{label}</span><strong>{value}</strong><small>{delta}</small></div>}
 function Head({title,sub,action,onClick}:{title:string;sub:string;action?:string;onClick?:()=>void}){return <div className="panel-head"><div><h2>{title}</h2><p>{sub}</p></div>{action&&<button className="link" onClick={onClick}>{action}</button>}</div>}
 function Empty({text}:{text:string}){return <div className="empty">{text}</div>}
-function icon(x:string){return ({Overview:'⌂',Opportunities:'◈','Skill Intelligence:'◎',Portfolio:'▦',Applications:'✓',GitHub:'◉',LinkedIn:'in','Research Agent':'⌁'} as Record<string,string>)[x]||'•'}
+function icon(x:string){return ({Overview:'⌂',Opportunities:'◈','Skill Intelligence':'◎',Portfolio:'▦',Applications:'✓',GitHub:'◉',LinkedIn:'in','Research Agent':'⌁'} as Record<string,string>)[x]||'•'}
