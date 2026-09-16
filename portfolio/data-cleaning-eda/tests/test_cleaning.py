@@ -1,6 +1,6 @@
 import pandas as pd
 
-from portfolio.data_cleaning_eda.src.cleaning import missing_value_report, remove_duplicate_rows, standardize_column_names
+from cleaning import missing_value_report, remove_duplicate_rows, standardize_column_names
 
 
 def test_standardize_column_names():
