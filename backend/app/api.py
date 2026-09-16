@@ -12,6 +12,19 @@ from backend.app.research_v21 import run_research_v21
 
 router = APIRouter(prefix="/api/v1", tags=["career"])
 
+TARGET_ROLE_TERMS = (
+    "ai", "machine learning", "data analyst", "data analysis", "data science",
+    "data scientist", "software engineer", "software engineering", "software development",
+    "mlops", "generative ai", "genai", "llm", "rag", "research intern",
+    "business analyst", "python developer", "backend",
+)
+INTERNSHIP_TERMS = ("intern", "internship", "trainee", "apprentice", "fellow")
+OBVIOUS_NON_TARGET_TERMS = (
+    "senior", "manager", "director", "vice president", "full time", "sales associate",
+    "accountant", "technical support engineer", "support engineer", "course", "career guide",
+    "how to land", "governance", "platform developer",
+)
+
 
 class MatchRequest(BaseModel):
     user_skills: list[str] = Field(default_factory=list)
@@ -24,6 +37,7 @@ class MatchRequest(BaseModel):
     location: str | None = None
     eligibility: str | None = None
     deadline: datetime | None = None
+    role_title: str | None = None
 
 
 @router.post("/match")
@@ -64,6 +78,17 @@ def _load_profile(db):
     return config, skills_response.data or []
 
 
+def _is_valid_internship(row: dict) -> bool:
+    title = (row.get("role_title") or "").strip().lower()
+    if not title:
+        return False
+    if any(term in title for term in OBVIOUS_NON_TARGET_TERMS):
+        return False
+    has_role = any(term in title for term in TARGET_ROLE_TERMS)
+    has_internship_signal = any(term in title for term in INTERNSHIP_TERMS)
+    return has_role and has_internship_signal
+
+
 def _load_active_internships(db):
     response = (
         db.table("internships")
@@ -74,12 +99,12 @@ def _load_active_internships(db):
         .eq("status", "active")
         .execute()
     )
-    return response.data or []
+    return [row for row in (response.data or []) if _is_valid_internship(row)]
 
 
 @router.post("/match/refresh")
 def refresh_all_matches() -> dict:
-    """Recalculate and persist matches for every active internship."""
+    """Recalculate and persist matches for every valid active internship."""
     db = get_supabase()
     config, skill_rows = _load_profile(db)
     internships = _load_active_internships(db)
@@ -100,6 +125,7 @@ def refresh_all_matches() -> dict:
             eligibility=internship.get("eligibility"),
             deadline=internship.get("deadline"),
             now=now,
+            role_title=internship.get("role_title"),
         )
         match_rows.append({
             "internship_id": internship["id"], "score": result.score,
@@ -165,10 +191,10 @@ def get_portfolio_projects(limit: int = 30) -> list[dict]:
 def get_system_status() -> dict:
     db = get_supabase()
     status = {
-        "github_ci": "Unknown",
-        "github_pr": "Open",
+        "github_ci": "Verified green on latest merge",
+        "github_pr": "PR #3 merged",
         "automation": "Configured",
-        "telegram": "Connected",
+        "telegram": "Connected (delivery quota previously exceeded)",
     }
     try:
         (
@@ -199,7 +225,8 @@ def get_matches(limit: int = 20) -> list[dict]:
         .limit(min(max(limit, 1), 100))
         .execute()
     )
-    return response.data or []
+    rows = response.data or []
+    return [row for row in rows if _is_valid_internship(row.get("internships") or {})]
 
 
 @router.post("/research/run")

@@ -13,6 +13,13 @@ ROLE_FAMILIES = {
     "software engineering intern": {"software engineering", "backend", "python/backend", "software engineer", "software development"},
 }
 
+TARGET_ROLE_TERMS = (
+    "ai", "machine learning", "data analyst", "data analysis", "data science",
+    "data scientist", "software engineer", "software engineering", "software development",
+    "mlops", "generative ai", "genai", "llm", "rag", "research intern",
+    "business analyst", "python developer", "backend",
+)
+
 SKILL_ALIASES = {
     "github": "git/github", "git": "git/github", "git/github": "git/github",
     "llms": "llm", "large language models": "llm", "generative ai": "generative ai", "gen ai": "generative ai",
@@ -49,6 +56,13 @@ def _role_family(role: str) -> str:
         if value == family or value in aliases:
             return family
     return value
+
+
+def _is_target_role_title(title: str | None) -> bool:
+    if not title:
+        return True
+    value = _norm(title)
+    return any(term in value for term in TARGET_ROLE_TERMS)
 
 
 def _location_score(opportunity_location: str | None, target_locations: list[str]) -> float:
@@ -109,7 +123,8 @@ def _deadline_score(deadline: datetime | str | None, now: datetime | None = None
 def calculate_match(*, user_skills: list[str], target_roles: list[str], target_locations: list[str], relocation_ok: bool,
                     role_category: str, required_skills: list[str], preferred_skills: list[str] | None = None,
                     location: str | None = None, eligibility: str | None = None,
-                    deadline: datetime | str | None = None, now: datetime | None = None) -> MatchResult:
+                    deadline: datetime | str | None = None, now: datetime | None = None,
+                    role_title: str | None = None) -> MatchResult:
     user = _norm_skills(user_skills)
     required = _norm_skills(required_skills)
     preferred = _norm_skills(preferred_skills or [])
@@ -122,7 +137,8 @@ def calculate_match(*, user_skills: list[str], target_roles: list[str], target_l
 
     target_families = {_role_family(role) for role in target_roles}
     opportunity_family = _role_family(role_category)
-    role_score = 100.0 if opportunity_family in target_families else 25.0
+    title_valid = _is_target_role_title(role_title)
+    role_score = 100.0 if title_valid and opportunity_family in target_families else 25.0 if title_valid else 0.0
     location_score = _location_score(location, target_locations)
     if location_score == 0.0 and relocation_ok:
         location_score = 60.0
@@ -132,7 +148,10 @@ def calculate_match(*, user_skills: list[str], target_roles: list[str], target_l
     missing = [skill for skill in required_skills if _norm(skill) not in user]
     reasons = []
     reasons.append("Strong skill overlap with required skills" if skill_score >= 70 else "Partial skill overlap; learning gaps remain" if skill_score >= 40 else "Large skill gap against required skills")
-    if role_score == 100: reasons.append("Role aligns with a target career direction")
+    if not title_valid:
+        reasons.append("Opportunity title does not match a target internship role")
+    elif role_score == 100:
+        reasons.append("Role aligns with a target career direction")
     if location_score >= 100: reasons.append("Location/work mode matches target preferences")
     if deadline_score >= 90: reasons.append("Deadline is approaching; prioritize review")
     return MatchResult(round(score, 2), round(skill_score, 2), round(role_score, 2), round(location_score, 2), round(eligibility_score, 2), round(deadline_score, 2), missing, reasons)
