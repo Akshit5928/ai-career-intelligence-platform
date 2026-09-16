@@ -12,9 +12,12 @@ export default function App() {
   const [status, setStatus] = React.useState<any>(null)
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [loading, setLoading] = React.useState(true)
+  const [lastSync, setLastSync] = React.useState<Date | null>(null)
 
   const load = React.useCallback(async () => {
     setError('')
+    setLoading(true)
     try {
       const [m, s, c, r, d, p, st] = await Promise.all([
         api.getMatches(), api.getMarketSkills(), api.getAgentCycles(), api.getResearchRuns(),
@@ -27,7 +30,9 @@ export default function App() {
       setDrafts(d)
       setProjects(p)
       setStatus(st)
+      setLastSync(new Date())
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to connect to FastAPI') }
+    finally { setLoading(false) }
   }, [])
 
   React.useEffect(() => { load() }, [load])
@@ -56,16 +61,18 @@ export default function App() {
       <div className="agent-card"><div className="live"><i/> Agent connected</div><strong>AI ranking is automatic</strong><p>No manual role filtering. The system ranks every relevant opportunity against your profile.</p><button onClick={runCycle} disabled={busy}>{busy ? 'Running research…' : 'Run agent cycle'}</button></div>
     </aside>
     <main>
-      <header><div><p className="eyebrow">CAREER INTELLIGENCE · LIVE</p><h1>{tab}</h1><p className="sub">One ranked feed across AI/ML, Data, GenAI, Software, Research and more.</p></div><div className="header-actions"><button className="ghost" onClick={runCycle} disabled={busy}>↻ {busy ? 'Syncing' : 'Sync now'}</button><div className="avatar">AJ</div></div></header>
-      {error && <div className="error">{error}<br/><small>Make sure FastAPI is running and VITE_API_BASE_URL points to it.</small></div>}
-      {tab === 'Overview' && <Overview matches={matches} skills={skills} high={high} readiness={readiness} expiring={expiring} setTab={setTab} />}
-      {tab === 'Opportunities' && <Opportunities matches={matches} />}
-      {tab === 'Skill Intelligence' && <Skills skills={skills} />}
-      {tab === 'Research Agent' && <Research cycles={cycles} runs={runs} busy={busy} runCycle={runCycle} />}
-      {tab === 'Portfolio' && <Portfolio projects={projects} />}
-      {tab === 'LinkedIn' && <LinkedIn drafts={drafts} />}
-      {tab === 'GitHub' && <GitHubStatus status={status} />}
-      {tab === 'Applications' && <section className="panel page-placeholder"><div className="big-icon">✓</div><h2>Applications</h2><p>Application tracking is kept approval-gated. No application is submitted automatically.</p></section>}
+      <header><div><p className="eyebrow">CAREER INTELLIGENCE · {loading ? 'CONNECTING' : 'LIVE'}</p><h1>{tab}</h1><p className="sub">One ranked feed across AI/ML, Data, GenAI, Software, Research and more.</p></div><div className="header-actions"><button className="ghost" onClick={load} disabled={loading || busy}>↻ Refresh</button><button className="ghost" onClick={runCycle} disabled={busy}>↻ {busy ? 'Syncing' : 'Sync now'}</button><div className="avatar">AJ</div></div></header>
+      {lastSync && <div className="sync-line">Last sync: {lastSync.toLocaleString('en-IN')} · {matches.length} matches · {skills.length} skills · {projects.length} portfolio items</div>}
+      {error && <div className="error">{error}<br/><small>Check FastAPI, VITE_API_BASE_URL and Supabase connectivity.</small></div>}
+      {loading && !error && <section className="panel page-placeholder"><div className="big-icon">◌</div><h2>Loading career intelligence…</h2><p>Fetching opportunities, skill demand, research history, portfolio progress and public-action status.</p></section>}
+      {!loading && tab === 'Overview' && <Overview matches={matches} skills={skills} high={high} readiness={readiness} expiring={expiring} setTab={setTab} />}
+      {!loading && tab === 'Opportunities' && <Opportunities matches={matches} />}
+      {!loading && tab === 'Skill Intelligence' && <Skills skills={skills} />}
+      {!loading && tab === 'Research Agent' && <Research cycles={cycles} runs={runs} busy={busy} runCycle={runCycle} />}
+      {!loading && tab === 'Portfolio' && <Portfolio projects={projects} />}
+      {!loading && tab === 'LinkedIn' && <LinkedIn drafts={drafts} />}
+      {!loading && tab === 'GitHub' && <GitHubStatus status={status} />}
+      {!loading && tab === 'Applications' && <section className="panel page-placeholder"><div className="big-icon">✓</div><h2>Applications</h2><p>Application tracking is kept approval-gated. No application is submitted automatically.</p></section>}
     </main>
   </div>
 }
