@@ -19,17 +19,20 @@ export default function App() {
     setError('')
     setLoading(true)
     try {
-      const [m, s, c, r, d, p, st] = await Promise.all([
+      const results = await Promise.allSettled([
         api.getMatches(), api.getMarketSkills(), api.getAgentCycles(), api.getResearchRuns(),
         api.getLinkedInDrafts(), api.getProjects(), api.getSystemStatus(),
       ])
-      setMatches(m)
-      setSkills(s)
-      setCycles(c)
-      setRuns(r)
-      setDrafts(d)
-      setProjects(p)
-      setStatus(st)
+      const errors: string[] = []
+      const [m, s, c, r, d, p, st] = results
+      if (m.status === 'fulfilled') setMatches(m.value); else errors.push(m.reason instanceof Error ? m.reason.message : '/matches failed')
+      if (s.status === 'fulfilled') setSkills(s.value); else errors.push(s.reason instanceof Error ? s.reason.message : '/market/skills failed')
+      if (c.status === 'fulfilled') setCycles(c.value); else errors.push(c.reason instanceof Error ? c.reason.message : '/agent/cycles failed')
+      if (r.status === 'fulfilled') setRuns(r.value); else errors.push(r.reason instanceof Error ? r.reason.message : '/research/runs failed')
+      if (d.status === 'fulfilled') setDrafts(d.value); else errors.push(d.reason instanceof Error ? d.reason.message : '/linkedin/drafts failed')
+      if (p.status === 'fulfilled') setProjects(p.value); else errors.push(p.reason instanceof Error ? p.reason.message : '/portfolio/projects failed')
+      if (st.status === 'fulfilled') setStatus(st.value); else errors.push(st.reason instanceof Error ? st.reason.message : '/system/status failed')
+      if (errors.length) setError(errors.join(' | '))
       setLastSync(new Date())
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to connect to FastAPI') }
     finally { setLoading(false) }
