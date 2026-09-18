@@ -20,6 +20,11 @@ app.add_middleware(
 app.include_router(career_router)
 
 
+@app.get("/api/v1/system/ping")
+def system_ping() -> dict[str, str]:
+    return {"status": "ok", "service": "fastapi", "message": "API reachable"}
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
