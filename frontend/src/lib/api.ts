@@ -5,8 +5,18 @@ export type MarketSkill = { skill_name: string; demand_count: number; demand_sha
 export type AgentCycle = { id: string; started_at: string; finished_at: string | null; status: string; discovered_count: number; new_matches: number; alerts_created: number; skill_updates: number; applications_due: number; error_message: string | null }
 export type ResearchRun = { id: string; source_id: string; started_at: string; finished_at: string | null; status: string; opportunities_found: number; opportunities_new: number; error_message: string | null }
 
+const DIRECT_API_BASE = 'http://127.0.0.1:8000'
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } })
+  const options = { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } }
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, options)
+  } catch (firstError) {
+    if (API_BASE_URL === '') {
+      response = await fetch(`${DIRECT_API_BASE}${path}`, options)
+    } else throw firstError
+  }
   if (!response.ok) throw new Error(`${path} → API ${response.status}: ${await response.text()}`)
   return response.json()
 }
