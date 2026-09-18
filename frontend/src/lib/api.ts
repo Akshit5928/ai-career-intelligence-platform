@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
 export type Opportunity = { id: string; internship_id: string; score: number; skill_score: number; role_score: number; location_score: number; eligibility_score: number; deadline_score: number; missing_skills: string[]; reasons: string[]; calculated_at: string; internships: { company_name: string; role_title: string; role_category: string; location: string | null; work_mode: string | null; stipend: string | number | null; deadline: string | null; application_url: string | null } }
 export type MarketSkill = { skill_name: string; demand_count: number; demand_share: number; user_proficiency: number; target_proficiency: number; gap_score: number; priority: string }
