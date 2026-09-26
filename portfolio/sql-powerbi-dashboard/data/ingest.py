@@ -11,10 +11,12 @@ def load_and_clean() -> pd.DataFrame:
     df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
     df["invoice_date"] = pd.to_datetime(df["invoice_date"], errors="coerce")
     df["customer_id"] = pd.to_numeric(df["customer_id"], errors="coerce").astype("Int64")
-    df["revenue"] = df["quantity"] * df["unitprice"]
+    df["unit_price"] = pd.to_numeric(df["unitprice"], errors="coerce")
+    df["revenue"] = df["quantity"] * df["unit_price"]
     df = df[~df["invoice_no"].astype(str).str.upper().str.startswith("C")]
     df = df[df["quantity"] > 0]
-    df = df[df["unitprice"] > 0]
+    df = df.dropna(subset=["invoice_date", "unit_price"])
+    df = df[df["unit_price"] > 0]
     return df.reset_index(drop=True)
 
 if __name__ == "__main__":
