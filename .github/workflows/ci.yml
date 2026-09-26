@@ -22,6 +22,9 @@ jobs:
         run: python -m pip install "pytest>=8,<9" "ruff>=0.6,<1.0"
       - name: Lint
         run: ruff check backend tests --select E9,F --output-format=concise
+      - name: Portfolio project tests
+        run: python -m pip install -r portfolio/sql-powerbi-dashboard/data/requirements.txt && pytest portfolio/sql-powerbi-dashboard/tests
+
       - name: Test
         env:
           PYTHONPATH: .
