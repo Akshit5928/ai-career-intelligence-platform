@@ -1,6 +1,13 @@
+import importlib.util
+from pathlib import Path
+
 import pandas as pd
 
-from portfolio.sql_powerbi_dashboard.data import ingest
+INGEST_PATH = Path(__file__).parents[1] / "data" / "ingest.py"
+SPEC = importlib.util.spec_from_file_location("portfolio_ingest", INGEST_PATH)
+ingest = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+SPEC.loader.exec_module(ingest)
 
 
 def test_cleaning_rules_without_network(monkeypatch):
