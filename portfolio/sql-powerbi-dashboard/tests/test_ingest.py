@@ -34,3 +34,4 @@ def test_cleaning_rules_without_network(monkeypatch):
     assert cleaned.iloc[0]["invoice_no"] == "10001"
     assert cleaned.iloc[0]["revenue"] == 10.0
     assert cleaned.iloc[0]["customer_id"] == 1
+    assert str(cleaned.iloc[0]["invoice_date"]) == "2011-01-01 10:00:00"
