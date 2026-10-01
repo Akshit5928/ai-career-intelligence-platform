@@ -26,10 +26,20 @@ def _canonical_column(column: object) -> str:
 
 def load_and_clean() -> pd.DataFrame:
     dataset = fetch_ucirepo(id=352)
-    df = dataset.data.features.copy()
-    df = df.rename(columns={column: _canonical_column(column) for column in df.columns})
     required = {"invoice_no", "quantity", "invoice_date", "unit_price", "customer_id", "country"}
+
+    # UCI marks InvoiceNo and StockCode as IDs, so they may be excluded from
+    # data.features. Prefer the complete original frame for transaction analysis.
+    df = dataset.data.original.copy() if hasattr(dataset.data, "original") else dataset.data.features.copy()
+    df = df.rename(columns={column: _canonical_column(column) for column in df.columns})
     missing = required - set(df.columns)
+    if missing and hasattr(dataset.data, "features"):
+        feature_df = dataset.data.features.copy()
+        feature_df = feature_df.rename(columns={column: _canonical_column(column) for column in feature_df.columns})
+        missing_from_features = required - set(feature_df.columns)
+        if len(missing_from_features) < len(missing):
+            df = feature_df
+            missing = missing_from_features
     if missing:
         raise ValueError(f"UCI Online Retail dataset is missing columns: {sorted(missing)}")
     df["invoice_date"] = pd.to_datetime(df["invoice_date"], errors="coerce")
