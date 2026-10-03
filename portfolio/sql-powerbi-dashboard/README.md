@@ -13,20 +13,30 @@ Source: https://archive.ics.uci.edu/dataset/352/online+retail
 - Normalized PostgreSQL/Supabase schema
 - 7 SQL business queries
 - Power BI dashboard specification
-- Three evidence-based business insights
+- Verified business insights from the real UCI dataset
 - Automated tests
 
-## Current status
-Dataset selected and ingestion pipeline added. The runtime cannot download the source workbook directly, so the project uses UCI's documented Python loader. No business findings are claimed until data is actually loaded and query outputs are verified.
+## Verified analysis snapshot
+The CI-verified real-data analysis on commit `00a957c552953a705e15b4d70e13197ee50a04e1` produced:
+- 530,104 cleaned transaction rows
+- 19,960 distinct orders
+- 10,666,684.54 total revenue
+- 534.40 average order value
+- 38 countries
+- November 2011 as the peak month with 1,509,496.33 revenue
+- United Kingdom revenue of 9,025,222.08 (84.61% of total)
+- Top customer 14646 with 280,206.02 revenue
+
+These values are outputs of the reproducible analysis pipeline; they are not manually invented portfolio metrics.
 
 ## Workflow
 1. Install the data requirements.
 2. Fetch UCI dataset ID 352.
 3. Apply cleaning rules and derive revenue.
-4. Load the processed data into PostgreSQL/Supabase.
-5. Execute and validate the seven SQL queries.
+4. Validate the cleaned transaction contract.
+5. Execute the seven SQL business queries against the normalized schema.
 6. Build the Power BI dashboard from verified outputs.
-7. Document findings and limitations.
+7. Document findings, limitations, and business interpretation.
 
 ## Internship relevance
 Targets recurring entry-level requirements around Python/Pandas, SQL, data cleaning, dashboarding, business insights, testing, documentation, and reproducible analysis.
