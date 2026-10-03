@@ -35,3 +35,32 @@ def test_cleaning_rules_without_network(monkeypatch):
     assert cleaned.iloc[0]["revenue"] == 10.0
     assert cleaned.iloc[0]["customer_id"] == 1
     assert str(cleaned.iloc[0]["invoice_date"]) == "2011-01-01 10:00:00"
+
+
+def test_column_normalization_handles_whitespace_and_casing(monkeypatch):
+    source = pd.DataFrame(
+        [{
+            " InvoiceNo ": "10005",
+            " StockCode ": "E",
+            " Description ": "Normalized",
+            " Quantity ": 4,
+            " InvoiceDate ": "2011-01-02 10:00:00",
+            " UnitPrice ": 2.5,
+            " CustomerID ": 5,
+            " Country ": "India",
+        }]
+    )
+
+    class Dataset:
+        pass
+
+    dataset = Dataset()
+    dataset.data = Dataset()
+    dataset.data.features = source
+    monkeypatch.setattr(ingest, "fetch_ucirepo", lambda id: dataset)
+
+    cleaned = ingest.load_and_clean()
+
+    assert cleaned.iloc[0]["invoice_no"] == "10005"
+    assert cleaned.iloc[0]["stock_code"] == "E"
+    assert cleaned.iloc[0]["revenue"] == 10.0
