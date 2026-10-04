@@ -17,7 +17,7 @@ Source: https://archive.ics.uci.edu/dataset/352/online+retail
 - Automated ingestion, SQL, and analysis tests
 
 ## Latest verified analysis snapshot
-The real-data smoke test in [GitHub Actions CI run #129](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185919006), on analysis commit `06a0e5ea75021b4ece4ea9e906299fa9f1d75fa5`, emitted:
+The real-data smoke test in [GitHub Actions CI run #131](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185978283), on analysis commit `15969badb1be4bf4adb91605a8daaaf901c189dc`, emitted:
 - 530,104 cleaned transaction rows
 - 19,960 distinct orders
 - 10,666,684.54 total revenue
@@ -28,7 +28,7 @@ The real-data smoke test in [GitHub Actions CI run #129](https://github.com/Aksh
 - Top customer 14646 with 280,206.02 revenue across 73 orders
 - Top product SKU DOT (DOTCOM POSTAGE), 706 units and 206,248.77 revenue
 
-Full CI run #129 passed on the current branch head: lint, 11 portfolio tests, the real-data analysis smoke test, 14 main tests, and frontend build. During validation, CI exposed two workflow setup defects: the npm cache referenced a nonexistent lockfile, and the frontend job lacked its own checkout step. Both were fixed and verified by the passing run.
+Full CI run #131 passed on analysis commit `15969badb1be4bf4adb91605a8daaaf901c189dc`: lint, 11 portfolio tests, the real-data analysis smoke test, 14 main tests, and frontend build. During validation, CI exposed two workflow setup defects: the npm cache referenced a nonexistent lockfile, and the frontend job lacked its own checkout step. Both were fixed and verified by the passing run.
 
 ## Reproducible workflow
 

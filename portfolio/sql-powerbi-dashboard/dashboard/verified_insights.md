@@ -4,9 +4,9 @@ Analysis source: UCI Online Retail dataset (UCI dataset ID 352).
 
 ## Verification provenance
 
-- Real-data smoke test: GitHub Actions CI run [#119](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185919006)
-- Analysis commit: `06a0e5ea75021b4ece4ea9e906299fa9f1d75fa5`
-- Full CI run #129 passed on the current branch head: lint, all 11 portfolio tests, the real UCI analysis smoke test, all 14 main tests, and frontend build.
+- Real-data smoke test: GitHub Actions CI run [#131](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185978283)
+- Analysis commit: `15969badb1be4bf4adb91605a8daaaf901c189dc`
+- Full CI run #131 passed on analysis commit `15969badb1be4bf4adb91605a8daaaf901c189dc`: lint, all 11 portfolio tests, the real UCI analysis smoke test, all 14 main tests, and frontend build.
 - SQL business-query tests execute all seven queries against a disposable DuckDB fixture. This validates query syntax and aggregation behavior in that fixture; it is not a live PostgreSQL integration test.
 
 ## Verified outputs
