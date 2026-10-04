@@ -49,6 +49,19 @@ def _is_internship(text: str) -> bool:
     return bool(re.search(r"intern(ship)?|trainee|fellow", text, flags=re.I))
 
 
+def _is_target_role(title: str) -> bool:
+    """Keep discovery focused on the user's AI/ML and data internship targets."""
+    return bool(re.search(
+        r"data analyst|business analyst|data science|data scientist|data engineer|"
+        r"business intelligence|analytics|machine learning|\\bai/ml\\b|"
+        r"artificial intelligence|ai engineer|generative ai|\\bgenai\\b|"
+        r"\\bllm\\b|\\brag\\b|\\bnlp\\b|computer vision|mlops|"
+        r"software engineer|software development|python developer|research.*\\b(ai|ml)\\b",
+        title,
+        flags=re.I,
+    ))
+
+
 def _role_category(title: str, fallback: str) -> str:
     text = title.lower()
     if "data analyst" in text or "business analyst" in text:
@@ -147,7 +160,7 @@ def _jsonld_candidates(html: str, page_url: str, fallback_role: str) -> list[dic
             continue
         title = _clean(obj.get("title") or obj.get("name"))
         description = _clean(obj.get("description"))
-        if not title or not _is_internship(f"{title} {description}"):
+        if not title or not _is_internship(f"{title} {description}") or not _is_target_role(title):
             continue
         org = obj.get("hiringOrganization") or {}
         company = org.get("name") if isinstance(org, dict) else None
@@ -239,7 +252,12 @@ def run_research() -> dict:
         source_errors = []
         try:
             fallback = "Research Intern - AI/ML" if source.get("source_type") == "research" else "AI/ML Intern"
-            candidates = _direct_source_candidates(source, fallback)
+            # Import lazily to avoid the adapter module importing shared parsing helpers
+            # back into this module at import time.
+            from backend.app.source_adapters import scan_source
+
+            candidates, scan_errors = scan_source(source, fallback)
+            source_errors.extend(scan_errors)
             found = len(candidates)
             new = _persist_candidates(db, run["id"], source.get("id"), candidates)
             db.table("research_runs").update({
