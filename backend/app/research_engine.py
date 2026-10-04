@@ -46,7 +46,7 @@ def _clean(value: str | None) -> str:
 
 
 def _is_internship(text: str) -> bool:
-    return bool(re.search(r"intern(ship)?|trainee|fellow", text, flags=re.I))
+    return bool(re.search(r"\b(?:intern(?:ship)?|trainee|fellow)\b", text, flags=re.I))
 
 
 def _is_target_role(title: str) -> bool:
@@ -261,7 +261,8 @@ def run_research() -> dict:
             found = len(candidates)
             new = _persist_candidates(db, run["id"], source.get("id"), candidates)
             db.table("research_runs").update({
-                "finished_at": datetime.now(timezone.utc).isoformat(), "status": "completed",
+                "finished_at": datetime.now(timezone.utc).isoformat(),
+                "status": "completed_with_errors" if source_errors else "completed",
                 "opportunities_found": found, "opportunities_new": new,
             }).eq("id", run["id"]).execute()
         except Exception as exc:
