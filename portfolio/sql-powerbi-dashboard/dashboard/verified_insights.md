@@ -4,9 +4,9 @@ Analysis source: UCI Online Retail dataset (UCI dataset ID 352).
 
 ## Verification provenance
 
-- Real-data smoke test: GitHub Actions CI run [#119](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185811315)
-- Analysis commit: `96070eb3032d39bec9695935ef51097efdb53921`
-- The run's portfolio tests (11 passed), real UCI analysis smoke test, lint, and main test suite (14 passed) completed successfully. This run's frontend job failed for a workflow setup issue; a subsequent workflow fix adds checkout and removes the invalid npm cache path. Await the newer run for full CI confirmation.
+- Real-data smoke test: GitHub Actions CI run [#119](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185919006)
+- Analysis commit: `06a0e5ea75021b4ece4ea9e906299fa9f1d75fa5`
+- Full CI run #129 passed on the current branch head: lint, all 11 portfolio tests, the real UCI analysis smoke test, all 14 main tests, and frontend build.
 - SQL business-query tests execute all seven queries against a disposable DuckDB fixture. This validates query syntax and aggregation behavior in that fixture; it is not a live PostgreSQL integration test.
 
 ## Verified outputs

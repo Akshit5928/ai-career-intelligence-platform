@@ -27,7 +27,7 @@
 4. SKU DOT (DOTCOM POSTAGE) was the top product by revenue at 206,248.77, with 706 units sold.
 
 ## Verification provenance
-Values above were emitted by the real UCI analysis smoke test in [CI run #119](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185811315), on analysis commit `96070eb3032d39bec9695935ef51097efdb53921`. The analysis smoke test passed. The SQL query suite runs all seven queries against a disposable DuckDB fixture and reconciles monthly revenue, monthly orders, country revenue, top customer, top product, total revenue, and AOV against Python analysis on that fixture. This is not a live PostgreSQL integration test; wait for the newest full CI run before calling the overall branch CI green.
+Values above were emitted by the real UCI analysis smoke test in [CI run #129](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185919006), on analysis commit `06a0e5ea75021b4ece4ea9e906299fa9f1d75fa5`. The full CI run passed: lint, 11 portfolio tests, the real-data analysis smoke test, 14 main tests, and frontend build. The SQL query suite runs all seven queries against a disposable DuckDB fixture and reconciles monthly revenue, monthly orders, country revenue, top customer, top product, total revenue, and AOV against Python analysis on that fixture. This is not a live PostgreSQL integration test.
 
 ## Data model
 The dashboard is built from the cleaned UCI Online Retail transaction table. Revenue is derived as `quantity * unit_price`. The PostgreSQL loader uses a transaction and replaces all rows in `analytics.sales`; use a dedicated analytics table/database.
