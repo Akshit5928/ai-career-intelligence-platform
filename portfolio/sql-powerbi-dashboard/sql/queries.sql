@@ -1,12 +1,12 @@
 -- SQL + Power BI dashboard query set
--- Dataset: UCI Online Retail, normalized by data/ingest.py.
+-- Dataset: UCI Online Retail, cleaned by data/ingest.py and loaded into analytics.sales.
 
 -- 1. Total revenue
 SELECT ROUND(SUM(revenue), 2) AS total_revenue
 FROM analytics.sales;
 
 -- 2. Revenue by month
-SELECT DATE_TRUNC('month', order_date) AS month,
+SELECT DATE_TRUNC('month', invoice_date) AS month,
        ROUND(SUM(revenue), 2) AS revenue
 FROM analytics.sales
 GROUP BY 1 ORDER BY 1;
@@ -30,7 +30,7 @@ WHERE customer_id IS NOT NULL
 GROUP BY customer_id ORDER BY revenue DESC LIMIT 10;
 
 -- 6. Monthly order volume
-SELECT DATE_TRUNC('month', order_date) AS month,
+SELECT DATE_TRUNC('month', invoice_date) AS month,
        COUNT(DISTINCT invoice_no) AS orders
 FROM analytics.sales
 GROUP BY 1 ORDER BY 1;

@@ -10,23 +10,51 @@ Source: https://archive.ics.uci.edu/dataset/352/online+retail
 
 ## Deliverables
 - Reproducible UCI ingestion and cleaning script
-- Normalized PostgreSQL/Supabase schema
-- 7 SQL business queries
+- Transactional PostgreSQL/Supabase CSV loader
+- PostgreSQL analytics schema and seven business queries
 - Power BI dashboard specification
-- Three evidence-based business insights
-- Automated tests
+- Verified business insights from the real UCI dataset
+- Automated ingestion, SQL, and analysis tests
 
-## Current status
-Dataset selected and ingestion pipeline added. The runtime cannot download the source workbook directly, so the project uses UCI's documented Python loader. No business findings are claimed until data is actually loaded and query outputs are verified.
+## Latest verified analysis snapshot
+The real-data smoke test in [GitHub Actions CI run #131](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185978283), on analysis commit `15969badb1be4bf4adb91605a8daaaf901c189dc`, emitted:
+- 530,104 cleaned transaction rows
+- 19,960 distinct orders
+- 10,666,684.54 total revenue
+- 534.40 average order value
+- 38 countries and 4,338 distinct customers with an ID
+- November 2011 as the peak month with 1,509,496.33 revenue
+- United Kingdom revenue of 9,025,222.08 (84.61% of total), across 18,019 distinct orders
+- Top customer 14646 with 280,206.02 revenue across 73 orders
+- Top product SKU DOT (DOTCOM POSTAGE), 706 units and 206,248.77 revenue
 
-## Workflow
-1. Install the data requirements.
-2. Fetch UCI dataset ID 352.
-3. Apply cleaning rules and derive revenue.
-4. Load the processed data into PostgreSQL/Supabase.
-5. Execute and validate the seven SQL queries.
-6. Build the Power BI dashboard from verified outputs.
-7. Document findings and limitations.
+Full CI run #131 passed on analysis commit `15969badb1be4bf4adb91605a8daaaf901c189dc`: lint, 11 portfolio tests, the real-data analysis smoke test, 14 main tests, and frontend build. During validation, CI exposed two workflow setup defects: the npm cache referenced a nonexistent lockfile, and the frontend job lacked its own checkout step. Both were fixed and verified by the passing run.
+
+## Reproducible workflow
+
+From this project directory:
+
+```powershell
+python -m pip install -r data/requirements.txt
+python data/ingest.py
+python data/analyze.py
+```
+
+To load the cleaned CSV into PostgreSQL or a Supabase PostgreSQL database, set `DATABASE_URL` to its connection string, then run:
+
+```powershell
+python data/load_postgres.py
+```
+
+You may pass a different cleaned CSV with `--csv path/to/file.csv`. The loader creates the schema, migrates the legacy `order_date` column name when needed, and replaces the contents of `analytics.sales` inside a transaction. Use a dedicated analytics table; this is a full table replacement. Keep credentials in environment variables and never commit them.
+
+Run offline tests:
+
+```powershell
+pytest tests
+```
+
+The SQL tests execute all seven query statements against a disposable DuckDB fixture. CI also starts disposable PostgreSQL 16, loads a small CSV through the actual PostgreSQL loader, executes all seven queries against PostgreSQL, and reconciles core SQL outputs with the Python analysis. No production database credentials are used. A real Supabase project connection should still be smoke-tested separately before production use.
 
 ## Internship relevance
-Targets recurring entry-level requirements around Python/Pandas, SQL, data cleaning, dashboarding, business insights, testing, documentation, and reproducible analysis.
+Targets entry-level requirements around Python/Pandas, SQL, data cleaning, database loading, dashboarding, business insights, testing, documentation, and reproducible analysis.
