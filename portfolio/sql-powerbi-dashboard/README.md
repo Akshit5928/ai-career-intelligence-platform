@@ -10,7 +10,7 @@ Source: https://archive.ics.uci.edu/dataset/352/online+retail
 
 ## Deliverables
 - Reproducible UCI ingestion and cleaning script
-- Normalized PostgreSQL/Supabase schema
+- PostgreSQL/Supabase analytics table schema
 - 7 SQL business queries
 - Power BI dashboard specification
 - Verified business insights from the real UCI dataset
@@ -34,9 +34,9 @@ These values are outputs of the reproducible analysis pipeline; they are not man
 2. Fetch UCI dataset ID 352.
 3. Apply cleaning rules and derive revenue.
 4. Validate the cleaned transaction contract.
-5. Execute the seven SQL business queries against the normalized schema.
-6. Build the Power BI dashboard from verified outputs.
-7. Document findings, limitations, and business interpretation.
+5. Create `analytics.sales` with `sql/schema.sql`, then load `data/processed/online_retail_clean.csv` into it (the ingestion script currently exports CSV; it does not connect to PostgreSQL/Supabase).
+6. Execute the seven SQL business queries in `sql/queries.sql`.
+7. Build the Power BI dashboard from verified outputs and document findings, limitations, and business interpretation.
 
 ## Internship relevance
 Targets recurring entry-level requirements around Python/Pandas, SQL, data cleaning, dashboarding, business insights, testing, documentation, and reproducible analysis.
