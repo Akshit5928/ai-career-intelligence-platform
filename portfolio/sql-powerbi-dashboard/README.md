@@ -16,18 +16,19 @@ Source: https://archive.ics.uci.edu/dataset/352/online+retail
 - Verified business insights from the real UCI dataset
 - Automated ingestion, SQL, and analysis tests
 
-## Historical verified analysis snapshot
-The previously CI-verified real-data analysis on commit `00a957c552953a705e15b4d70e13197ee50a04e1` produced:
+## Latest verified analysis snapshot
+The real-data smoke test in [GitHub Actions CI run #119](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185811315), on analysis commit `96070eb3032d39bec9695935ef51097efdb53921`, emitted:
 - 530,104 cleaned transaction rows
 - 19,960 distinct orders
 - 10,666,684.54 total revenue
 - 534.40 average order value
-- 38 countries
+- 38 countries and 4,338 distinct customers with an ID
 - November 2011 as the peak month with 1,509,496.33 revenue
-- United Kingdom revenue of 9,025,222.08 (84.61% of total)
-- Top customer 14646 with 280,206.02 revenue
+- United Kingdom revenue of 9,025,222.08 (84.61% of total), across 18,019 distinct orders
+- Top customer 14646 with 280,206.02 revenue across 73 orders
+- Top product SKU DOT (DOTCOM POSTAGE), 706 units and 206,248.77 revenue
 
-These figures are historical outputs from the earlier pipeline revision. Re-run the real-data CI smoke test after pipeline changes before treating them as re-verified.
+The real-data smoke test passed in run #119. The portfolio tests (11 passed), lint, and main test suite (14 passed) also passed in that run. The frontend job exposed two workflow setup defects: the npm cache referenced a nonexistent lockfile, and the frontend job lacked its own checkout step. Both have been fixed on the branch; await the newer CI run for final confirmation.
 
 ## Reproducible workflow
 
