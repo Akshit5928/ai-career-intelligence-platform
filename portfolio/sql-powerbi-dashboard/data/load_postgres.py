@@ -14,15 +14,8 @@ DEFAULT_CSV = DATA_DIR / "processed" / "online_retail_clean.csv"
 SCHEMA_PATH = DATA_DIR.parent / "sql" / "schema.sql"
 
 COLUMNS = (
-    "invoice_no",
-    "stock_code",
-    "description",
-    "quantity",
-    "invoice_date",
-    "unit_price",
-    "customer_id",
-    "country",
-    "revenue",
+    "invoice_no", "stock_code", "description", "quantity", "invoice_date",
+    "unit_price", "customer_id", "country", "revenue",
 )
 
 
@@ -35,24 +28,28 @@ def load_csv(csv_path: Path, database_url: str) -> int:
 
     with psycopg.connect(database_url) as conn:
         with conn.cursor() as cur:
-            cur.execute(SCHEMA_PATH.read_text(encoding="utf-8"))
+            cur.execute("CREATE SCHEMA IF NOT EXISTS analytics")
 
-            # Migrate the previous schema's date name if this table already exists.
-            cur.execute(
-                """
+            # Migrate the previous schema before executing schema.sql, whose
+            # indexes refer to invoice_date.
+            cur.execute("""
                 SELECT column_name
                 FROM information_schema.columns
                 WHERE table_schema = 'analytics' AND table_name = 'sales'
-                """
-            )
+            """)
             existing = {row[0] for row in cur.fetchall()}
             if "order_date" in existing and "invoice_date" not in existing:
                 cur.execute(
                     "ALTER TABLE analytics.sales RENAME COLUMN order_date TO invoice_date"
                 )
-                existing.remove("order_date")
-                existing.add("invoice_date")
 
+            cur.execute(SCHEMA_PATH.read_text(encoding="utf-8"))
+            cur.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'analytics' AND table_name = 'sales'
+            """)
+            existing = {row[0] for row in cur.fetchall()}
             missing = set(COLUMNS) - existing
             if missing:
                 raise ValueError(
