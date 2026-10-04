@@ -26,7 +26,17 @@ def _canonical_column(column: object) -> str:
 
 def load_and_clean() -> pd.DataFrame:
     dataset = fetch_ucirepo(id=352)
-    required = {"invoice_no", "quantity", "invoice_date", "unit_price", "customer_id", "country"}
+    # Product identifiers are required by the downstream schema and SQL queries.
+    # Description is optional in the source and nullable in the SQL schema.
+    required = {
+        "invoice_no",
+        "stock_code",
+        "quantity",
+        "invoice_date",
+        "unit_price",
+        "customer_id",
+        "country",
+    }
 
     # UCI marks InvoiceNo and StockCode as IDs, so they may be excluded from
     # data.features. Prefer the complete original frame for transaction analysis.
@@ -42,14 +52,19 @@ def load_and_clean() -> pd.DataFrame:
             missing = missing_from_features
     if missing:
         raise ValueError(f"UCI Online Retail dataset is missing columns: {sorted(missing)}")
+
     df["invoice_date"] = pd.to_datetime(df["invoice_date"], errors="coerce")
     df["customer_id"] = pd.to_numeric(df["customer_id"], errors="coerce").astype("Int64")
     df["unit_price"] = pd.to_numeric(df["unit_price"], errors="coerce")
     df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
     df["revenue"] = df["quantity"] * df["unit_price"]
+
+    # Match the SQL schema's NOT NULL dimensions before exporting/loading.
+    df = df.dropna(
+        subset=["invoice_no", "stock_code", "quantity", "invoice_date", "unit_price", "country"]
+    )
     df = df[~df["invoice_no"].astype(str).str.upper().str.startswith("C")]
     df = df[df["quantity"] > 0]
-    df = df.dropna(subset=["invoice_date", "unit_price"])
     df = df[df["unit_price"] > 0]
     return df.reset_index(drop=True)
 
