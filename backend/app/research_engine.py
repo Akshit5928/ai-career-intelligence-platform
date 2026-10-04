@@ -53,10 +53,10 @@ def _is_target_role(title: str) -> bool:
     """Keep discovery focused on the user's AI/ML and data internship targets."""
     return bool(re.search(
         r"data analyst|business analyst|data science|data scientist|data engineer|"
-        r"business intelligence|analytics|machine learning|\\bai/ml\\b|"
-        r"artificial intelligence|ai engineer|generative ai|\\bgenai\\b|"
-        r"\\bllm\\b|\\brag\\b|\\bnlp\\b|computer vision|mlops|"
-        r"software engineer|software development|python developer|research.*\\b(ai|ml)\\b",
+        r"business intelligence|analytics|machine learning|\bai/ml\b|"
+        r"artificial intelligence|ai engineer|generative ai|\bgenai\b|"
+        r"\bllm\b|\brag\b|\bnlp\b|computer vision|mlops|"
+        r"software engineer|software development|python developer|research.*\b(ai|ml)\b",
         title,
         flags=re.I,
     ))
