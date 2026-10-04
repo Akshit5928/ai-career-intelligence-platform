@@ -28,6 +28,22 @@ def test_postgres_loader_and_all_seven_queries(tmp_path):
     if not database_url:
         pytest.skip("TEST_DATABASE_URL is not set; CI supplies a disposable PostgreSQL service.")
 
+    # This test invokes a loader that intentionally replaces analytics.sales.
+    # Never let a misconfigured environment point that destructive test at a
+    # remote database, and require explicit opt-in for local manual execution.
+    if os.environ.get("CI", "").lower() != "true" and os.environ.get("ALLOW_DESTRUCTIVE_TEST_DATABASE") != "1":
+        pytest.skip(
+            "PostgreSQL integration test is destructive by design. Run in CI, "
+            "or set ALLOW_DESTRUCTIVE_TEST_DATABASE=1 for a disposable local database."
+        )
+    conninfo = psycopg.conninfo.conninfo_to_dict(database_url)
+    hosts = (conninfo.get("host") or "localhost").split(",")
+    if any(host.strip().lower() not in {"localhost", "127.0.0.1", "::1"} for host in hosts):
+        pytest.fail(
+            "Refusing to run destructive PostgreSQL integration test against a remote host; "
+            "use a disposable loopback PostgreSQL database."
+        )
+
     csv_path = tmp_path / "retail_fixture.csv"
     columns = [
         "invoice_no", "stock_code", "description", "quantity", "invoice_date",
