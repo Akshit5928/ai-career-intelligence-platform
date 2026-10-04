@@ -26,15 +26,14 @@ def _canonical_column(column: object) -> str:
 
 def load_and_clean() -> pd.DataFrame:
     dataset = fetch_ucirepo(id=352)
-    # Product identifiers are required by the downstream schema and SQL queries.
-    # Description is optional in the source and nullable in the SQL schema.
+    # Product identifiers are required downstream. Customer IDs and descriptions
+    # are nullable in the SQL schema, so their source columns may be absent.
     required = {
         "invoice_no",
         "stock_code",
         "quantity",
         "invoice_date",
         "unit_price",
-        "customer_id",
         "country",
     }
 
@@ -52,6 +51,11 @@ def load_and_clean() -> pd.DataFrame:
             missing = missing_from_features
     if missing:
         raise ValueError(f"UCI Online Retail dataset is missing columns: {sorted(missing)}")
+
+    if "customer_id" not in df.columns:
+        df["customer_id"] = pd.NA
+    if "description" not in df.columns:
+        df["description"] = pd.NA
 
     df["invoice_date"] = pd.to_datetime(df["invoice_date"], errors="coerce")
     df["customer_id"] = pd.to_numeric(df["customer_id"], errors="coerce").astype("Int64")
