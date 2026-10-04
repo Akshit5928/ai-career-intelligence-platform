@@ -35,6 +35,10 @@ def _fixture_connection():
     return conn
 
 
+def _month_label(value) -> str:
+    return value.strftime("%Y-%m")
+
+
 def test_all_seven_business_queries_execute_and_return_expected_results():
     statements = _query_statements()
     assert len(statements) == 7, f"Expected 7 SQL queries, found {len(statements)}"
@@ -55,7 +59,7 @@ def test_all_seven_business_queries_execute_and_return_expected_results():
     assert float(results[6][0][3]) == 15.0
 
 
-def test_python_analysis_matches_sql_kpis_on_same_fixture():
+def test_all_relevant_sql_outputs_reconcile_with_python_analysis():
     sys.path.insert(0, str(PROJECT_DIR / "data"))
     import analyze  # noqa: E402
 
@@ -66,16 +70,31 @@ def test_python_analysis_matches_sql_kpis_on_same_fixture():
         {"invoice_no": "10003", "stock_code": "C", "description": "Gamma", "quantity": 3, "invoice_date": pd.Timestamp("2011-02-02 10:00:00"), "unit_price": 4.0, "customer_id": pd.NA, "country": "France", "revenue": 12.0},
     ])
     df["customer_id"] = df["customer_id"].astype("Int64")
-    result = analyze.analyze(df)
+    py = analyze.analyze(df)
     conn = _fixture_connection()
     try:
-        sql_total = float(conn.execute("SELECT SUM(revenue) FROM analytics.sales").fetchone()[0])
-        sql_orders = int(conn.execute("SELECT COUNT(DISTINCT invoice_no) FROM analytics.sales").fetchone()[0])
-        sql_countries = int(conn.execute("SELECT COUNT(DISTINCT country) FROM analytics.sales").fetchone()[0])
+        statements = _query_statements()
+        sql = [conn.execute(statement).fetchall() for statement in statements]
     finally:
         conn.close()
 
-    assert result["total_revenue"] == sql_total
-    assert result["orders"] == sql_orders
-    assert result["countries"] == sql_countries
-    assert result["customers_with_id"] == 2
+    assert py["total_revenue"] == float(sql[0][0][0])
+    assert py["orders"] == 3
+    assert py["average_order_value"] == float(sql[3][0][0])
+    assert py["top_country"]["country"] == sql[2][0][0]
+    assert py["top_country"]["revenue"] == float(sql[2][0][1])
+    assert py["peak_revenue_month"]["month"] == _month_label(sql[1][-1][0])
+    assert py["peak_revenue_month"]["revenue"] == float(sql[1][-1][1])
+    assert py["top_customer"]["customer_id"] == sql[4][0][0]
+    assert py["top_customer"]["revenue"] == float(sql[4][0][1])
+    assert py["top_product"]["stock_code"] == sql[6][0][0]
+    assert py["top_product"]["revenue"] == float(sql[6][0][3])
+
+    python_monthly_orders = (
+        df.assign(month=df["invoice_date"].dt.to_period("M").astype(str))
+        .groupby("month")["invoice_no"].nunique().to_dict()
+    )
+    sql_monthly_orders = {_month_label(month): count for month, count in sql[5]}
+    assert python_monthly_orders == sql_monthly_orders
+    assert py["countries"] == df["country"].nunique()
+    assert py["customers_with_id"] == df["customer_id"].nunique()
