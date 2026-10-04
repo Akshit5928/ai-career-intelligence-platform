@@ -1,13 +1,11 @@
-from pathlib import Path
 import json
+
 import pandas as pd
 
 from ingest import load_and_clean
 
-OUT = Path(__file__).parent / "processed"
 
 def analyze(df: pd.DataFrame) -> dict:
-    orders = df.groupby("invoice_no", as_index=False)["revenue"].sum()
     monthly = (
         df.assign(month=df["invoice_date"].dt.to_period("M").astype(str))
         .groupby("month", as_index=False)["revenue"].sum()
@@ -23,9 +21,15 @@ def analyze(df: pd.DataFrame) -> dict:
         .agg(revenue=("revenue", "sum"), orders=("invoice_no", "nunique"))
         .sort_values("revenue", ascending=False)
     )
+    # Match the SQL query: one product row per stock code, even if its
+    # source descriptions vary across transactions.
     products = (
-        df.groupby(["stock_code", "description"], dropna=False, as_index=False)
-        .agg(units_sold=("quantity", "sum"), revenue=("revenue", "sum"))
+        df.groupby("stock_code", dropna=False, as_index=False)
+        .agg(
+            description=("description", "max"),
+            units_sold=("quantity", "sum"),
+            revenue=("revenue", "sum"),
+        )
         .sort_values("revenue", ascending=False)
     )
 
@@ -41,12 +45,30 @@ def analyze(df: pd.DataFrame) -> dict:
         "orders": int(df["invoice_no"].nunique()),
         "average_order_value": round(float(df["revenue"].sum() / df["invoice_no"].nunique()), 2),
         "countries": int(df["country"].nunique()),
-        "customers_with_id": int(df["customer_id"].notna().sum()),
-        "peak_revenue_month": {"month": peak_month["month"], "revenue": round(float(peak_month["revenue"]), 2)},
-        "top_country": {"country": top_country["country"], "revenue": round(float(top_country["revenue"]), 2), "orders": int(top_country["orders"])},
-        "top_customer": {"customer_id": int(customers.iloc[0]["customer_id"]), "revenue": round(float(customers.iloc[0]["revenue"]), 2), "orders": int(customers.iloc[0]["orders"])},
-        "top_product": {"stock_code": str(top_product["stock_code"]), "description": str(top_product["description"]), "units_sold": float(top_product["units_sold"]), "revenue": round(float(top_product["revenue"]), 2)},
+        # Count unique identified customers, not transaction rows with an ID.
+        "customers_with_id": int(df["customer_id"].nunique(dropna=True)),
+        "peak_revenue_month": {
+            "month": peak_month["month"],
+            "revenue": round(float(peak_month["revenue"]), 2),
+        },
+        "top_country": {
+            "country": top_country["country"],
+            "revenue": round(float(top_country["revenue"]), 2),
+            "orders": int(top_country["orders"]),
+        },
+        "top_customer": {
+            "customer_id": int(customers.iloc[0]["customer_id"]),
+            "revenue": round(float(customers.iloc[0]["revenue"]), 2),
+            "orders": int(customers.iloc[0]["orders"]),
+        },
+        "top_product": {
+            "stock_code": str(top_product["stock_code"]),
+            "description": top_product["description"],
+            "units_sold": float(top_product["units_sold"]),
+            "revenue": round(float(top_product["revenue"]), 2),
+        },
     }
+
 
 if __name__ == "__main__":
     result = analyze(load_and_clean())
