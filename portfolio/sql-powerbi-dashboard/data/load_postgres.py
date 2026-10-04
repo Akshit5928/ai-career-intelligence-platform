@@ -43,7 +43,9 @@ def load_csv(csv_path: Path, database_url: str) -> int:
                     "ALTER TABLE analytics.sales RENAME COLUMN order_date TO invoice_date"
                 )
 
-            cur.execute(SCHEMA_PATH.read_text(encoding="utf-8"))
+            for statement in SCHEMA_PATH.read_text(encoding="utf-8").split(";"):
+                if statement.strip():
+                    cur.execute(statement)
             cur.execute("""
                 SELECT column_name
                 FROM information_schema.columns
