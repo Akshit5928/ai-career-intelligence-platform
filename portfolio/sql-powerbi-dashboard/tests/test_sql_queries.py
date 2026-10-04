@@ -83,8 +83,9 @@ def test_all_relevant_sql_outputs_reconcile_with_python_analysis():
     assert py["average_order_value"] == float(sql[3][0][0])
     assert py["top_country"]["country"] == sql[2][0][0]
     assert py["top_country"]["revenue"] == float(sql[2][0][1])
-    assert py["peak_revenue_month"]["month"] == _month_label(sql[1][-1][0])
-    assert py["peak_revenue_month"]["revenue"] == float(sql[1][-1][1])
+    sql_peak_month = max(sql[1], key=lambda row: float(row[1]))
+    assert py["peak_revenue_month"]["month"] == _month_label(sql_peak_month[0])
+    assert py["peak_revenue_month"]["revenue"] == float(sql_peak_month[1])
     assert py["top_customer"]["customer_id"] == sql[4][0][0]
     assert py["top_customer"]["revenue"] == float(sql[4][0][1])
     assert py["top_product"]["stock_code"] == sql[6][0][0]
