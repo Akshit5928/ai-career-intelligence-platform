@@ -64,3 +64,25 @@ def test_column_normalization_handles_whitespace_and_casing(monkeypatch):
     assert cleaned.iloc[0]["invoice_no"] == "10005"
     assert cleaned.iloc[0]["stock_code"] == "E"
     assert cleaned.iloc[0]["revenue"] == 10.0
+
+
+def test_cleaning_drops_rows_missing_required_schema_fields(monkeypatch):
+    source = pd.DataFrame([
+        {"InvoiceNo": "10006", "StockCode": None, "Description": "Missing SKU", "Quantity": 1, "InvoiceDate": "2011-01-03 10:00:00", "UnitPrice": 3.0, "CustomerID": 6, "Country": "India"},
+        {"InvoiceNo": None, "StockCode": "F", "Description": "Missing invoice", "Quantity": 1, "InvoiceDate": "2011-01-03 10:00:00", "UnitPrice": 3.0, "CustomerID": 7, "Country": "India"},
+        {"InvoiceNo": "10008", "StockCode": "G", "Description": "Valid", "Quantity": 2, "InvoiceDate": "2011-01-03 10:00:00", "UnitPrice": 3.0, "CustomerID": None, "Country": "India"},
+    ])
+
+    class Dataset:
+        pass
+
+    dataset = Dataset()
+    dataset.data = Dataset()
+    dataset.data.features = source
+    monkeypatch.setattr(ingest, "fetch_ucirepo", lambda id: dataset)
+
+    cleaned = ingest.load_and_clean()
+
+    assert len(cleaned) == 1
+    assert cleaned.iloc[0]["invoice_no"] == "10008"
+    assert pd.isna(cleaned.iloc[0]["customer_id"])
