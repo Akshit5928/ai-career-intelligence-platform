@@ -9,6 +9,7 @@ from backend.app.research_engine import (
     _clean,
     _fetch,
     _is_internship,
+    _is_target_role,
     _jsonld_candidates,
     _links,
 )
@@ -69,11 +70,7 @@ def adapter_for(source: dict) -> SourceAdapter:
 
 
 def _looks_like_job_card(text: str, title: str = "") -> bool:
-    role_terms = (
-        "ai", "machine learning", "data analyst", "data science", "software engineer",
-        "mlops", "generative ai", "llm",
-    )
-    return _is_internship(text) and any(term in title.lower() for term in role_terms)
+    return _is_internship(text) and _is_target_role(title)
 
 
 def _html_card_candidates(html: str, page_url: str, fallback_role: str, company: str) -> list[dict]:

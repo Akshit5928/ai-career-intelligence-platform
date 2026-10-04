@@ -1,4 +1,4 @@
-from backend.app.research_engine import _jsonld_candidates, _parse_rss, _role_category, _skills
+from backend.app.research_engine import _is_target_role, _jsonld_candidates, _parse_rss, _role_category, _skills
 
 
 def test_role_family_detection_covers_ai_ml_and_data_analyst() -> None:
@@ -52,3 +52,29 @@ def test_rss_parser_uses_source_url_and_published_date() -> None:
     assert results[0]["role_category"] == "Data Analyst Intern"
     assert results[0]["source_url"] == "https://example.com/feed"
     assert results[0]["published_at"] == "2026-09-05T10:00:00+00:00"
+
+
+
+def test_target_role_filter_covers_data_and_ai_ml_roles_without_body_keyword_false_positives() -> None:
+    assert _is_target_role("Data Analyst Intern")
+    assert _is_target_role("GenAI / LLM Intern")
+    assert _is_target_role("Machine Learning Research Intern")
+    assert _is_target_role("Python Developer Intern")
+    assert not _is_target_role("Finance Operations Intern")
+    assert not _is_target_role("Human Resources Intern")
+
+
+def test_jsonld_discovery_rejects_unrelated_internships_even_if_description_mentions_python() -> None:
+    html = '''
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "JobPosting",
+      "title": "Finance Operations Intern",
+      "description": "Finance operations internship. Python knowledge is a plus.",
+      "url": "/careers/finance-intern",
+      "hiringOrganization": {"name": "Example Finance"}
+    }
+    </script>
+    '''
+    assert _jsonld_candidates(html, "https://example.com/careers", "AI/ML Intern") == []
