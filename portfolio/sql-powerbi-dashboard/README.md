@@ -54,7 +54,7 @@ Run offline tests:
 pytest tests
 ```
 
-The SQL tests execute all seven query statements against a disposable DuckDB fixture and reconcile core SQL KPIs with the Python analysis. This is a compatibility fixture, not a substitute for testing against a live PostgreSQL instance before production use.
+The SQL tests execute all seven query statements against a disposable DuckDB fixture. CI also starts disposable PostgreSQL 16, loads a small CSV through the actual PostgreSQL loader, executes all seven queries against PostgreSQL, and reconciles core SQL outputs with the Python analysis. No production database credentials are used. A real Supabase project connection should still be smoke-tested separately before production use.
 
 ## Internship relevance
 Targets entry-level requirements around Python/Pandas, SQL, data cleaning, database loading, dashboarding, business insights, testing, documentation, and reproducible analysis.

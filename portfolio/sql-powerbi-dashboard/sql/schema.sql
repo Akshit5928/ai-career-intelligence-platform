@@ -1,7 +1,7 @@
 CREATE SCHEMA IF NOT EXISTS analytics;
 
 -- One row per cleaned transaction line. invoice_date matches the CSV emitted
--- by data/ingest.py; use this schema when loading online_retail_clean.csv.
+-- by data/ingest.py, use this schema when loading online_retail_clean.csv.
 CREATE TABLE IF NOT EXISTS analytics.sales (
     invoice_no TEXT NOT NULL,
     stock_code TEXT NOT NULL,

@@ -7,7 +7,7 @@ Analysis source: UCI Online Retail dataset (UCI dataset ID 352).
 - Real-data smoke test: GitHub Actions CI run [#131](https://github.com/Akshit5928/ai-career-intelligence-platform/actions/runs/37185978283)
 - Analysis commit: `15969badb1be4bf4adb91605a8daaaf901c189dc`
 - Full CI run #131 passed on analysis commit `15969badb1be4bf4adb91605a8daaaf901c189dc`: lint, all 11 portfolio tests, the real UCI analysis smoke test, all 14 main tests, and frontend build.
-- SQL business-query tests execute all seven queries against a disposable DuckDB fixture. This validates query syntax and aggregation behavior in that fixture; it is not a live PostgreSQL integration test.
+- CI now also provisions disposable PostgreSQL 16 to exercise the CSV loader, execute all seven SQL queries against PostgreSQL, and reconcile core outputs with Python analysis. A DuckDB fixture remains as fast compatibility coverage. No production database or credentials are used.
 
 ## Verified outputs
 
