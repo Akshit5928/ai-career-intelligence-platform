@@ -10,14 +10,14 @@ Source: https://archive.ics.uci.edu/dataset/352/online+retail
 
 ## Deliverables
 - Reproducible UCI ingestion and cleaning script
-- PostgreSQL/Supabase analytics table schema
-- 7 SQL business queries
+- Transactional PostgreSQL/Supabase CSV loader
+- PostgreSQL analytics schema and seven business queries
 - Power BI dashboard specification
 - Verified business insights from the real UCI dataset
-- Automated tests
+- Automated ingestion, SQL, and analysis tests
 
-## Verified analysis snapshot
-The CI-verified real-data analysis on commit `00a957c552953a705e15b4d70e13197ee50a04e1` produced:
+## Historical verified analysis snapshot
+The previously CI-verified real-data analysis on commit `00a957c552953a705e15b4d70e13197ee50a04e1` produced:
 - 530,104 cleaned transaction rows
 - 19,960 distinct orders
 - 10,666,684.54 total revenue
@@ -27,16 +27,33 @@ The CI-verified real-data analysis on commit `00a957c552953a705e15b4d70e13197ee5
 - United Kingdom revenue of 9,025,222.08 (84.61% of total)
 - Top customer 14646 with 280,206.02 revenue
 
-These values are outputs of the reproducible analysis pipeline; they are not manually invented portfolio metrics.
+These figures are historical outputs from the earlier pipeline revision. Re-run the real-data CI smoke test after pipeline changes before treating them as re-verified.
 
-## Workflow
-1. Install the data requirements.
-2. Fetch UCI dataset ID 352.
-3. Apply cleaning rules and derive revenue.
-4. Validate the cleaned transaction contract.
-5. Create `analytics.sales` with `sql/schema.sql`, then load `data/processed/online_retail_clean.csv` into it (the ingestion script currently exports CSV; it does not connect to PostgreSQL/Supabase).
-6. Execute the seven SQL business queries in `sql/queries.sql`.
-7. Build the Power BI dashboard from verified outputs and document findings, limitations, and business interpretation.
+## Reproducible workflow
+
+From this project directory:
+
+```powershell
+python -m pip install -r data/requirements.txt
+python data/ingest.py
+python data/analyze.py
+```
+
+To load the cleaned CSV into PostgreSQL or a Supabase PostgreSQL database, set `DATABASE_URL` to its connection string, then run:
+
+```powershell
+python data/load_postgres.py
+```
+
+You may pass a different cleaned CSV with `--csv path/to/file.csv`. The loader creates the schema, migrates the legacy `order_date` column name when needed, and replaces the contents of `analytics.sales` inside a transaction. Use a dedicated analytics table; this is a full table replacement. Keep credentials in environment variables and never commit them.
+
+Run offline tests:
+
+```powershell
+pytest tests
+```
+
+The SQL tests execute all seven query statements against a disposable DuckDB fixture and reconcile core SQL KPIs with the Python analysis. This is a compatibility fixture, not a substitute for testing against a live PostgreSQL instance before production use.
 
 ## Internship relevance
-Targets recurring entry-level requirements around Python/Pandas, SQL, data cleaning, dashboarding, business insights, testing, documentation, and reproducible analysis.
+Targets entry-level requirements around Python/Pandas, SQL, data cleaning, database loading, dashboarding, business insights, testing, documentation, and reproducible analysis.
